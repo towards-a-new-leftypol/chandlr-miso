@@ -6,14 +6,10 @@ let
 
   env = drv.env.overrideAttrs (oldAttrs: {
     buildInputs = oldAttrs.buildInputs ++ [
-      pkgs.haskellPackages.cabal-install
+      pkgs.haskell.packages.ghc.cabal-install
     ];
   });
 
-  # pkgs = import ./nixpkgs.nix { nixpkgs = nixpkgs; };
-  # chandlr_pkg = pkgs.haskell.packages.ghcjs.callCabal2nix "chandlr" ./. {};
-  # #chandlr = nixpkgs.haskell.packages.ghcjs.callPackage chandlr_pkg {};
-  # chandlr = pkgs.callPackage chandlr_pkg {};
 in
 
   if pkgs.lib.inNixShell then env else drv
