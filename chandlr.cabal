@@ -52,19 +52,14 @@ extra-doc-files:    CHANGELOG.md
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 -- extra-source-files:
 
-common warnings
-    ghc-options: -Wall
-
 executable chandlr
-    -- if !impl(ghcjs)
-    --     buildable: False
-
-    -- Import common warning flags.
-    import:           warnings
+    if !impl(ghcjs)
+        buildable: False
 
     -- .hs or .lhs file containing the Main module.
     main-is:          Main.hs
 
+    ghc-options:      -Wall -O2
     ghcjs-options:    -dedupe
 
     -- Modules included in this executable, other than Main.
