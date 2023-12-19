@@ -1,7 +1,6 @@
+{ nixpkgs }:
 let
-  bootstrap = import <nixpkgs> {};
-
-  nixpkgs-src = bootstrap.fetchFromGitHub {
+  nixpkgs-src = nixpkgs.fetchFromGitHub {
     owner = "NixOS";
     repo  = "nixpkgs";
     rev = "3fd87ad0073fd1ef71a8fcd1a1d1a89392c33d0a";
