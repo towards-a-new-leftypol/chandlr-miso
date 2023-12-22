@@ -7,53 +7,61 @@ import Miso
     , startApp
     , App (..)
     , h1_
+    , div_
     , text
     , Effect
     --, (#>)
     , noEff
     , defaultEvents
+    , LogLevel (Off)
     )
 
-data Unit = Unit
-    deriving Eq
+import qualified Component.CatalogGrid as Grid
 
-type Model = Unit
+data Model = Model
+    { gridModel :: Grid.Model
+    } deriving Eq
 
-type Action = Unit
+data Action
+    = GridAction Grid.Action
+    | NoAction
+
+initialModel :: Model
+initialModel = Model
+    { gridModel = Grid.initialModel
+    }
 
 main :: IO ()
 main = startApp App
-    { model         = Unit
+    { model         = initialModel
     , update        = mainUpdate
     , view          = mainView
     , subs          = []
     , events        = defaultEvents
-    , initialAction = Unit
+    , initialAction = NoAction
     , mountPoint    = Nothing
+    , logLevel      = Off
     }
 
 mainView :: Model -> View Action
-mainView = const $ h1_ [] [ text "Hello World" ]
+mainView model =
+    div_ []
+        [ h1_ [] [ text "Hello World" ]
+        , Grid.view iGrid (gridModel model)
+        ]
 
 mainUpdate :: Action -> Model -> Effect Action Model
--- mainUpdate = const $ (#>) (pure Unit) -- this is an infinite loop!
 mainUpdate = const noEff
+
+iGrid :: Grid.Interface Action
+iGrid = Grid.Interface
+    { Grid.passAction = GridAction
+    , Grid.selectThread = ()
+    }
 
 {-
  - TODO:
  -  - Create Hello World page render ✓
- -  - Create CatalogGrid component (static at first)
- -}
-
-{-
- -
- - TODO:
- - - Initial page just needs to display the search bar, fetch catalog and
- -   display it
- -  Make Model
- -      - single value representing that we need to go fetch the initial page
- -  
- -  maybe immediately create the CatalogGrid component with its own model? That
- -  would allow us to swap it out with a thread / overboard component later, and
- -  tell it what to render
+ -  - Create CatalogGrid component (static at first) ✓
+ -  - Get postgrest url from page header and perform an initial xhr request
  -}

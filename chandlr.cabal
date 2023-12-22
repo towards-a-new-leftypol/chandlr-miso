@@ -1,4 +1,3 @@
--- cabal-version:      2.4
 cabal-version:       >=1.10
 -- The cabal-version field refers to the version of the .cabal specification,
 -- and can be different from the cabal-install (the tool) version and the
@@ -47,7 +46,7 @@ category:           Web
 build-type:         Simple
 
 -- Extra doc files to be distributed with the package, such as a CHANGELOG or a README.
-extra-doc-files:    CHANGELOG.md
+-- extra-doc-files:    CHANGELOG.md
 
 -- Extra source files to be distributed with the package, such as examples, or a tutorial module.
 -- extra-source-files:
@@ -63,7 +62,7 @@ executable chandlr
     ghcjs-options:    -dedupe
 
     -- Modules included in this executable, other than Main.
-    -- other-modules:
+    other-modules:    Component.CatalogGrid
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
