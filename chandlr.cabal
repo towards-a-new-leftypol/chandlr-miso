@@ -71,7 +71,8 @@ executable chandlr
     build-depends:     aeson,
                        base < 5,
                        ghcjs-base,
-                       miso
+                       miso,
+                       servant
 
     -- Directories containing source files.
     hs-source-dirs:   src

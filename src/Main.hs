@@ -1,4 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeOperators #-}
 
 module Main where
 
@@ -14,7 +16,16 @@ import Miso
     , noEff
     , defaultEvents
     , LogLevel (Off)
+    , URI
+    , runRoute
+    , getCurrentURI
     )
+
+import Data.Proxy
+import Servant.API
+
+import Action
+import Routes
 
 import qualified Component.CatalogGrid as Grid
 
@@ -22,9 +33,18 @@ data Model = Model
     { gridModel :: Grid.Model
     } deriving Eq
 
-data Action
-    = GridAction Grid.Action
-    | NoAction
+initialActionFromRoute :: Model -> URI -> Action
+initialActionFromRoute model uri = either (const NoAction) id routing_result
+    where
+        routing_result = runRoute (Proxy :: Proxy Route) handlers (const uri) model
+
+        handlers = h_latest :<|> h_thread
+
+        h_latest :: Model -> Action
+        h_latest = const GetLatest
+
+        h_thread :: String -> String -> BoardThreadId -> Model -> Action
+        h_thread board website board_thread_id _ = GetThread {..}
 
 initialModel :: Model
 initialModel = Model
@@ -32,16 +52,19 @@ initialModel = Model
     }
 
 main :: IO ()
-main = startApp App
-    { model         = initialModel
-    , update        = mainUpdate
-    , view          = mainView
-    , subs          = []
-    , events        = defaultEvents
-    , initialAction = NoAction
-    , mountPoint    = Nothing
-    , logLevel      = Off
-    }
+main = do
+    uri <- getCurrentURI
+
+    startApp App
+        { model         = initialModel
+        , update        = mainUpdate
+        , view          = mainView
+        , subs          = []
+        , events        = defaultEvents
+        , initialAction = initialActionFromRoute initialModel uri
+        , mountPoint    = Nothing
+        , logLevel      = Off
+        }
 
 mainView :: Model -> View Action
 mainView model =
@@ -64,4 +87,14 @@ iGrid = Grid.Interface
  -  - Create Hello World page render ✓
  -  - Create CatalogGrid component (static at first) ✓
  -  - Get postgrest url from page header and perform an initial xhr request
+ -
+ -  - do I need to move out everything into another project called chandlr-common?
+ -      - if I want to use the isomorphic feature of miso, then yes
+ -
+ -  - add a router first
+ -      - go to the next page and do xhr for the content
+ -          - before we do xhr we need the postgrest url,
+ -              - how do we tackle a config?
+ -  - make it isomorphic
+ -      - move everything before or during this part into common lib
  -}
