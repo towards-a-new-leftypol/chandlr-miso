@@ -6,6 +6,7 @@ module Component.CatalogGrid
 , Action
 , Interface (..)
 , view
+, update
 ) where
 
 import Miso
@@ -23,6 +24,8 @@ import Miso
     , p_
     , br_
     , id_
+    , Effect
+    , noEff
     )
 
 type Model = ()
@@ -37,13 +40,20 @@ data Interface a = Interface
     , selectThread :: ()
     }
 
+update
+    :: Interface a
+    -> Action
+    -> Model
+    -> Effect a Model
+update = const $ const noEff
+
 view :: Interface a -> Model -> View a
 view iface model =
     div_
         [ class_ "threads" ]
         [ div_
             [ id_ "Grid" ]
-            [ gridItem | _ <- [0..10] ]
+            [ gridItem | _ <- [0..10] :: [ Int ] ]
         ]
 
 gridItem :: View a

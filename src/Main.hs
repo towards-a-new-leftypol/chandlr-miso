@@ -73,8 +73,15 @@ mainView model =
         , Grid.view iGrid (gridModel model)
         ]
 
+
 mainUpdate :: Action -> Model -> Effect Action Model
-mainUpdate = const noEff
+mainUpdate NoAction m = noEff m
+mainUpdate GetLatest m = noEff m
+mainUpdate GetThread {..} m = noEff m
+mainUpdate (GridAction ga) m =
+    Grid.update iGrid ga (gridModel m)
+    >>= \gm -> noEff (m { gridModel = gm })
+
 
 iGrid :: Grid.Interface Action
 iGrid = Grid.Interface
