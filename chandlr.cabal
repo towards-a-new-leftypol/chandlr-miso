@@ -63,6 +63,9 @@ executable chandlr
 
     -- Modules included in this executable, other than Main.
     other-modules:    Component.CatalogGrid
+                      Action
+                      Network.Client
+                      Routes
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -72,7 +75,10 @@ executable chandlr
                        base < 5,
                        ghcjs-base,
                        miso,
-                       servant
+                       servant,
+                       ghcjs-dom,
+                       ghcjs-dom-jsffi,
+                       text
 
     -- Directories containing source files.
     hs-source-dirs:   src

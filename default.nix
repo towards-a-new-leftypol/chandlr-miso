@@ -11,6 +11,7 @@ let
   env = drv.env.overrideAttrs (oldAttrs: {
     buildInputs = oldAttrs.buildInputs ++ [
       pkgs.haskellPackages.cabal-install
+      new_pkgs.haskellPackages.ghcjs-dom
       new_pkgs.haskellPackages.miso-from-html
     ];
   });
