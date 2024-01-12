@@ -1,15 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
-import Control.Concurrent.MVar (takeMVar)
 import Data.Proxy
-import Data.Text (Text)
-import Control.Monad (void)
-import Control.Concurrent (forkIO)
 
 import Miso
     ( View
@@ -27,7 +22,6 @@ import Miso
     , URI
     , runRoute
     , getCurrentURI
-    , effectSub
     , consoleLog
     --, MisoString (..)
     )
@@ -36,13 +30,14 @@ import Servant.API
 
 import Action
 import Routes
-import Network.Client as Client
+import qualified Network.Client as Client
 
 import qualified Component.CatalogGrid as Grid
 
 
 data Model = Model
     { gridModel :: Grid.Model
+    , clientModel :: Client.Model
     } deriving Eq
 
 
@@ -63,6 +58,7 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
 initialModel :: Model
 initialModel = Model
     { gridModel = Grid.initialModel
+    , clientModel = Client.initialModel
     }
 
 
@@ -101,73 +97,35 @@ mainUpdate (HaveLatest Client.Error) m = noEff m
 mainUpdate (HaveLatest (Client.HttpResponse {..})) m = m <# do
     case body of
         Nothing -> do
-            putStrLn "Didn't get anything back from API"
             consoleLog "Didn't get anything back from API"
         Just txt -> do
-            print txt
             consoleLog $ toJSString txt
 
     return NoAction
 
-mainUpdate (NewConnection (_, resultVar)) m = effectSub m $ \sink -> do
-    void $ forkIO $ do
-        result :: Client.HttpResult Text <- takeMVar resultVar
-        sink $ HaveLatest result
-
-mainUpdate GetLatest m = m <# do
-    putStrLn "Getting Latest!"
-
-    stuff <- Client.http
-        "http://localhost:3000/posts?limit=10"
-        Client.GET
-        Nothing
-
-    return $ NewConnection stuff
-
-{-
-mainUpdate GetLatest m =
-    Client.http
-        "/posts?limit=10"
-        Client.GET
-        Nothing
-
-    <# \(abort, resultVar) ->
-        effectSub m (httpSub resultVar) <> noEff m
-
-  where
-    httpSub :: MVar (Client.HttpResult Text) -> Sink Action -> IO ()
-    httpSub resultVar sink = do
-        result :: Client.HttpResult Text <- liftIO $ takeMVar resultVar
-        liftIO $ sink (HaveLatest result)
--}
-
-{-
-mainUpdate GetLatest m = do
-    (abort, resultVar) <- Client.http
-            "/posts?limit=10"
-            Client.GET
-            Nothing
-
-    -- return noEff m
-    return $ effectSub m (httpSub resultVar) <> noEff m -- { abortAction = Just abort }
-
-  where
-    httpSub :: MVar (Client.HttpResult Text) -> Sink Action -> IO ()
-    httpSub resultVar sink = do
-        result :: Client.HttpResult Text <- liftIO $ takeMVar resultVar
-        liftIO $ sink (HaveLatest result)
--}
+mainUpdate GetLatest m = m <# Client.fetchLatest iClient
 
 mainUpdate GetThread {..} m = noEff m
+
 mainUpdate (GridAction ga) m =
     Grid.update iGrid ga (gridModel m)
     >>= \gm -> noEff (m { gridModel = gm })
+
+mainUpdate (ClientAction ca) m =
+    Client.update iClient ca (clientModel m)
+    >>= \cm -> noEff (m { clientModel = cm })
 
 
 iGrid :: Grid.Interface Action
 iGrid = Grid.Interface
     { Grid.passAction = GridAction
     , Grid.selectThread = ()
+    }
+
+iClient :: Client.Interface Action
+iClient = Client.Interface
+    { Client.passAction = ClientAction
+    , Client.returnResult = HaveLatest
     }
 
 {-

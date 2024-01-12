@@ -13,5 +13,5 @@ data Action
         , board_thread_id :: Int
         }
     | HaveLatest (Client.HttpResult Text)
-    | NewConnection Client.HttpActionResult
+    | ClientAction Client.Action
     | NoAction
