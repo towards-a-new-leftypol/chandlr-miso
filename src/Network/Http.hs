@@ -8,6 +8,7 @@ module Network.Http
     )
 where
 
+import Prelude hiding (error)
 import Data.Text (Text)
 import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar)
@@ -24,7 +25,7 @@ import GHCJS.DOM.JSFFI.Generated.XMLHttpRequest (send)
 import GHCJS.DOM.Types (XMLHttpRequest)
 import Data.JSString.Text (textToJSString)
 import GHCJS.DOM.EventM (onAsync)
-import GHCJS.DOM.XMLHttpRequestEventTarget (load)
+import GHCJS.DOM.XMLHttpRequestEventTarget (load, abortEvent, error)
 
 -- What we actually want is to call send and not block the thread
 --   - so that we can put the request into our list of ongoing requests.
@@ -97,6 +98,12 @@ http url method payload = do
     _ <- onAsync xhr load $ liftIO $ do
         result <- mkResult xhr
         putMVar resultVar result
+
+    _ <- onAsync xhr abortEvent $ liftIO $
+        putMVar resultVar Error
+
+    _ <- onAsync xhr error $ liftIO $
+        putMVar resultVar Error
 
     openSimple xhr (show method) url
     -- "/posts?limit=10"

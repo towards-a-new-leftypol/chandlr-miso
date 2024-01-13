@@ -42,7 +42,7 @@ update
     -> Action
     -> Model
     -> Effect a Model
-update iface (Connect (_, resultVar)) m = effectSub m $
+update iface (Connect (abort, resultVar)) m = effectSub m $
     \sink -> void $ forkIO $ do
         result :: Http.HttpResult Text <- takeMVar resultVar
         sink $ (returnResult iface) result

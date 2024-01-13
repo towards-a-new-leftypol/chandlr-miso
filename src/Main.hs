@@ -92,7 +92,9 @@ mainView model =
 
 mainUpdate :: Action -> Model -> Effect Action Model
 mainUpdate NoAction m = noEff m
-mainUpdate (HaveLatest Client.Error) m = noEff m
+mainUpdate (HaveLatest Client.Error) m = m <# do
+    consoleLog "Getting Latest failed!"
+    return NoAction
 
 mainUpdate (HaveLatest (Client.HttpResponse {..})) m = m <# do
     case body of
