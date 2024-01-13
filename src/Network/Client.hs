@@ -20,14 +20,15 @@ import Control.Concurrent.MVar (takeMVar)
 import Miso (effectSub, Effect)
 
 import qualified Network.Http as Http
+import Common.PostsType (Post)
 
 
-data Action = Connect Http.HttpActionResult
+data Action = Connect (Http.HttpActionResult [Post])
 
 
 data Interface a = Interface
     { passAction :: Action -> a
-    , returnResult :: Http.HttpResult Text -> a
+    , returnResult :: Http.HttpResult [Post] -> a
     }
 
 
@@ -44,7 +45,7 @@ update
     -> Effect a Model
 update iface (Connect (abort, resultVar)) m = effectSub m $
     \sink -> void $ forkIO $ do
-        result :: Http.HttpResult Text <- takeMVar resultVar
+        result :: Http.HttpResult [Post] <- takeMVar resultVar
         sink $ (returnResult iface) result
 
 

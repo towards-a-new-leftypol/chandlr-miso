@@ -67,6 +67,7 @@ executable chandlr
                       Network.Http
                       Network.Client
                       Routes
+                      Common.PostsType
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -79,7 +80,8 @@ executable chandlr
                        servant,
                        ghcjs-dom,
                        ghcjs-dom-jsffi,
-                       text
+                       text,
+                       time
 
     -- Directories containing source files.
     hs-source-dirs:   src

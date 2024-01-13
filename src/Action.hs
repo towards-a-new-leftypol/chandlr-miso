@@ -4,6 +4,8 @@ import Component.CatalogGrid as Grid
 import Network.Client as Client
 import Data.Text (Text)
 
+import Common.PostsType (Post)
+
 data Action
     = GridAction Grid.Action
     | GetLatest
@@ -12,6 +14,6 @@ data Action
         , board           :: String
         , board_thread_id :: Int
         }
-    | HaveLatest (Client.HttpResult Text)
+    | HaveLatest (Client.HttpResult [Post])
     | ClientAction Client.Action
     | NoAction

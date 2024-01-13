@@ -100,8 +100,8 @@ mainUpdate (HaveLatest (Client.HttpResponse {..})) m = m <# do
     case body of
         Nothing -> do
             consoleLog "Didn't get anything back from API"
-        Just txt -> do
-            consoleLog $ toJSString txt
+        Just posts -> do
+            consoleLog $ toJSString $ show posts
 
     return NoAction
 
