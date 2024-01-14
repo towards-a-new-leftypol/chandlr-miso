@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
 import Data.Proxy
+import Data.Maybe (maybe)
 
 import Miso
     ( View
@@ -25,7 +27,10 @@ import Miso
     , consoleLog
     --, MisoString (..)
     )
-import GHCJS.DOM.Types (toJSString)
+import GHCJS.DOM (currentDocument)
+import GHCJS.DOM.Types (toJSString, Element, JSString)
+import GHCJS.DOM.ParentNode (querySelector)
+import GHCJS.DOM.Element (getAttribute)
 import Servant.API
 
 import Action
@@ -55,12 +60,23 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
         h_thread board website board_thread_id _ = GetThread {..}
 
 
-initialModel :: Model
-initialModel = Model
+initialModel :: JSString -> Model
+initialModel pgroot = Model
     { gridModel = Grid.initialModel
-    , clientModel = Client.initialModel
+    , clientModel = Client.Model { Client.pgApiRoot = pgroot }
     }
 
+getMetadata :: String -> IO (Maybe JSString)
+getMetadata key = do
+    doc <- currentDocument
+
+    mElem :: Maybe Element <- case doc of
+        Nothing -> return Nothing
+        Just d -> querySelector d $ "meta[name='" ++ key ++ "']"
+
+    case mElem of
+        Nothing -> return Nothing
+        Just el -> getAttribute el ("content" :: JSString)
 
 main :: IO ()
 main = do
@@ -70,13 +86,19 @@ main = do
 
     consoleLog $ toJSString $ show uri
 
+    pg_api_root <- getMetadata "postgrest-root" >>=
+        return . maybe "http://localhost:2000" id
+    consoleLog pg_api_root
+
+    let initial_model = initialModel pg_api_root
+
     startApp App
-        { model         = initialModel
+        { model         = initial_model
         , update        = mainUpdate
         , view          = mainView
         , subs          = []
         , events        = defaultEvents
-        , initialAction = initialActionFromRoute initialModel uri
+        , initialAction = initialActionFromRoute initial_model uri
         , mountPoint    = Nothing
         , logLevel      = Off
         }
@@ -101,11 +123,11 @@ mainUpdate (HaveLatest (Client.HttpResponse {..})) m = m <# do
         Nothing -> do
             consoleLog "Didn't get anything back from API"
         Just posts -> do
-            consoleLog $ toJSString $ show posts
+            mapM_ (consoleLog . toJSString . show) posts
 
     return NoAction
 
-mainUpdate GetLatest m = m <# Client.fetchLatest iClient
+mainUpdate GetLatest m = m <# Client.fetchLatest (clientModel m) iClient
 
 mainUpdate GetThread {..} m = noEff m
 

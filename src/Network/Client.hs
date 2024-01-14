@@ -1,4 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 module Network.Client
     ( Http.HttpActionResult
@@ -7,16 +10,19 @@ module Network.Client
     , Action (..)
     , Interface (..)
     , fetchLatest
-    , Model
+    , Model (..)
     , update
-    , initialModel
     ) where
 
-import Data.Text (Text)
+import GHC.Generics
 import Control.Monad (void)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
+import Data.Aeson (ToJSON)
+import Data.Time (getCurrentTime)
+import Data.Time.Clock (UTCTime)
 
+import GHCJS.DOM.Types (JSString)
 import Miso (effectSub, Effect)
 
 import qualified Network.Http as Http
@@ -31,11 +37,9 @@ data Interface a = Interface
     , returnResult :: Http.HttpResult [Post] -> a
     }
 
-
-type Model = ()
-
-initialModel :: Model
-initialModel = ()
+data Model = Model
+  { pgApiRoot :: JSString
+  } deriving Eq
 
 
 update
@@ -48,12 +52,18 @@ update iface (Connect (abort, resultVar)) m = effectSub m $
         result :: Http.HttpResult [Post] <- takeMVar resultVar
         sink $ (returnResult iface) result
 
+data FetchCatalogArgs = FetchCatalogArgs
+  { max_time :: UTCTime
+  , max_row_read :: Int
+  } deriving (Generic, ToJSON)
 
-fetchLatest :: Interface a -> IO a
-fetchLatest iface =
+fetchLatest :: Model -> Interface a -> IO a
+fetchLatest m iface = do
+    ct <- getCurrentTime
+
     Http.http
-        "http://localhost:3000/posts?limit=10"
-        Http.GET
-        Nothing
-
+        ((pgApiRoot m) <> ("/rpc/fetch_catalog" :: JSString))
+        Http.POST
+        [("Content-Type", "application/json")]
+        (Just $ FetchCatalogArgs { max_time = ct, max_row_read = 1000 })
     >>= return . (passAction iface) . Connect

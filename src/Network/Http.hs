@@ -9,11 +9,12 @@ module Network.Http
 where
 
 import Prelude hiding (error)
+import Data.ByteString.Lazy (toStrict)
 import Data.Text (Text)
-import Data.Text.Encoding (encodeUtf8)
+import Data.Text.Encoding (encodeUtf8, decodeUtf8)
 import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar)
-import Data.Aeson (FromJSON, eitherDecodeStrict)
+import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrict, encode)
 import GHCJS.DOM.XMLHttpRequest
     ( newXMLHttpRequest
     , openSimple
@@ -21,10 +22,11 @@ import GHCJS.DOM.XMLHttpRequest
     , getStatusText
     , getResponseText
     , abort
+    , setRequestHeader
     -- , send
     )
 import GHCJS.DOM.JSFFI.Generated.XMLHttpRequest (send)
-import GHCJS.DOM.Types (XMLHttpRequest)
+import GHCJS.DOM.Types (XMLHttpRequest, JSString)
 import Data.JSString.Text (textToJSString)
 import GHCJS.DOM.EventM (onAsync)
 import GHCJS.DOM.XMLHttpRequestEventTarget (load, abortEvent, error)
@@ -42,6 +44,8 @@ data HttpResult a
 
 type HttpActionResult a = (IO (), MVar (HttpResult a)) -- (abort, result)
 
+
+type Header = (JSString, JSString)
 
 mkResult :: (FromJSON a) => XMLHttpRequest -> IO (HttpResult a)
 mkResult xhr = do
@@ -73,12 +77,13 @@ mkResult xhr = do
 
 
 http
-    :: (FromJSON a)
-    => String
+    :: (FromJSON a, ToJSON b)
+    => JSString
     -> HttpMethod
-    -> Maybe Text
+    -> [Header]
+    -> Maybe b
     -> IO (HttpActionResult a)
-http url method payload = do
+http url method headers payload = do
     xhr <- newXMLHttpRequest
 
     resultVar <- newEmptyMVar
@@ -96,5 +101,9 @@ http url method payload = do
     openSimple xhr (show method) url
     -- "/posts?limit=10"
 
-    send xhr (payload >>= Just . textToJSString)
+    mapM_ (\(k, v) -> setRequestHeader xhr k v) headers
+
+    let p = payload >>= Just . textToJSString . decodeUtf8 . toStrict . encode
+
+    send xhr p
     return (abort xhr, resultVar)
