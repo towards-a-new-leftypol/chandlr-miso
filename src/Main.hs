@@ -127,14 +127,14 @@ mainUpdate (HaveLatest Client.Error) m = m <# do
     consoleLog "Getting Latest failed!"
     return NoAction
 
-mainUpdate (HaveLatest (Client.HttpResponse {..})) m = m <# do
+mainUpdate (HaveLatest (Client.HttpResponse {..})) m = m <#
     case body of
         Nothing -> do
             consoleLog "Didn't get anything back from API"
+            return NoAction
         Just posts -> do
             mapM_ (consoleLog . toJSString . show) posts
-
-    return NoAction
+            return $ GridAction $ Grid.DisplayItems posts
 
 mainUpdate GetLatest m = m <# Client.fetchLatest (clientModel m) iClient
 

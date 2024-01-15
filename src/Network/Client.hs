@@ -26,15 +26,15 @@ import GHCJS.DOM.Types (JSString)
 import Miso (effectSub, Effect)
 
 import qualified Network.Http as Http
-import Common.PostsType (Post)
+import Network.CatalogPostType (CatalogPost)
 
 
-data Action = Connect (Http.HttpActionResult [Post])
+data Action = Connect (Http.HttpActionResult [CatalogPost])
 
 
 data Interface a = Interface
     { passAction :: Action -> a
-    , returnResult :: Http.HttpResult [Post] -> a
+    , returnResult :: Http.HttpResult [CatalogPost] -> a
     }
 
 data Model = Model
@@ -50,7 +50,7 @@ update
     -> Effect a Model
 update iface (Connect (abort, resultVar)) m = effectSub m $
     \sink -> void $ forkIO $ do
-        result :: Http.HttpResult [Post] <- takeMVar resultVar
+        result :: Http.HttpResult [CatalogPost] <- takeMVar resultVar
         sink $ (returnResult iface) result
 
 data FetchCatalogArgs = FetchCatalogArgs

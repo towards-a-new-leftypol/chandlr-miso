@@ -2,9 +2,8 @@ module Action where
 
 import Component.CatalogGrid as Grid
 import Network.Client as Client
-import Data.Text (Text)
 
-import Common.PostsType (Post)
+import Network.CatalogPostType (CatalogPost)
 
 data Action
     = GridAction Grid.Action
@@ -14,6 +13,6 @@ data Action
         , board           :: String
         , board_thread_id :: Int
         }
-    | HaveLatest (Client.HttpResult [Post])
+    | HaveLatest (Client.HttpResult [CatalogPost])
     | ClientAction Client.Action
     | NoAction

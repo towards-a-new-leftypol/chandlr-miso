@@ -66,8 +66,8 @@ executable chandlr
                       Action
                       Network.Http
                       Network.Client
+                      Network.CatalogPostType
                       Routes
-                      Common.PostsType
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
