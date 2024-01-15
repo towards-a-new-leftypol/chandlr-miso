@@ -28,7 +28,7 @@ import Miso
     --, MisoString (..)
     )
 import GHCJS.DOM (currentDocument)
-import GHCJS.DOM.Types (toJSString, Element, JSString)
+import GHCJS.DOM.Types (toJSString, fromJSString, Element, JSString)
 import GHCJS.DOM.ParentNode (querySelector)
 import GHCJS.DOM.Element (getAttribute)
 import Servant.API
@@ -60,10 +60,16 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
         h_thread board website board_thread_id _ = GetThread {..}
 
 
-initialModel :: JSString -> Model
-initialModel pgroot = Model
+initialModel
+    :: JSString
+    -> Int
+    -> Model
+initialModel pgroot client_fetch_count = Model
     { gridModel = Grid.initialModel
-    , clientModel = Client.Model { Client.pgApiRoot = pgroot }
+    , clientModel = Client.Model
+        { Client.pgApiRoot = pgroot
+        , Client.fetchCount = client_fetch_count
+        }
     }
 
 getMetadata :: String -> IO (Maybe JSString)
@@ -90,7 +96,10 @@ main = do
         return . maybe "http://localhost:2000" id
     consoleLog pg_api_root
 
-    let initial_model = initialModel pg_api_root
+    pg_fetch_count <- getMetadata "postgrest-fetch-count" >>=
+        return . maybe 1000 (read . fromJSString)
+
+    let initial_model = initialModel pg_api_root pg_fetch_count
 
     startApp App
         { model         = initial_model

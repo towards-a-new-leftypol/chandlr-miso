@@ -39,6 +39,7 @@ data Interface a = Interface
 
 data Model = Model
   { pgApiRoot :: JSString
+  , fetchCount :: Int
   } deriving Eq
 
 
@@ -65,5 +66,9 @@ fetchLatest m iface = do
         ((pgApiRoot m) <> ("/rpc/fetch_catalog" :: JSString))
         Http.POST
         [("Content-Type", "application/json")]
-        (Just $ FetchCatalogArgs { max_time = ct, max_row_read = 1000 })
+        ( Just $ FetchCatalogArgs
+            { max_time = ct
+            , max_row_read = fetchCount m
+            }
+        )
     >>= return . (passAction iface) . Connect
