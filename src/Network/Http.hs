@@ -30,6 +30,8 @@ import GHCJS.DOM.Types (XMLHttpRequest, JSString)
 import Data.JSString.Text (textToJSString)
 import GHCJS.DOM.EventM (onAsync)
 import GHCJS.DOM.XMLHttpRequestEventTarget (load, abortEvent, error)
+import GHCJS.DOM.Types (toJSString)
+import Miso (consoleLog)
 
 data HttpMethod = GET | PUT | POST | DELETE | PATCH
     deriving Show
@@ -68,7 +70,9 @@ mkResult xhr = do
             Just bs -> do
                 let parse_result = eitherDecodeStrict bs
                 case parse_result of
-                    Left _ -> return Error
+                    Left err -> do
+                      consoleLog $ toJSString $ show err
+                      return Error
                     Right x -> return HttpResponse
                         { status_code = status_code_int
                         , status_text = st

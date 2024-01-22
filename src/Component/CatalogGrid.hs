@@ -13,15 +13,15 @@ import Data.List (intercalate)
 import Data.Maybe (maybeToList)
 import Data.JSString (append)
 import Miso
-    ( View , div_ , class_ , img_ , href_ , a_
-    , src_ , alt_ , title_ , strong_ , span_
-    , p_ , br_ , id_ , Effect , noEff
-    , text, rawHtml
+    ( View, div_ , class_ , img_ , href_ , a_
+    , src_ , title_ , strong_ , span_
+    , p_ , br_ , id_ , Effect , noEff, width_
+    , height_, text, rawHtml
     )
+import Miso.String (toMisoString, MisoString)
 
 import Network.CatalogPostType (CatalogPost)
 import qualified Network.CatalogPostType as CatalogPost
-import Miso.String (toMisoString, MisoString)
 
 data Model = Model
   { displayItems :: [ CatalogPost ]
@@ -43,7 +43,7 @@ update
     -> Model
     -> Effect a Model
 update _ (DisplayItems xs) m = noEff (m { displayItems = xs })
-update _ _ m = noEff m
+-- update _ _ m = noEff m
 
 view :: Interface a -> Model -> View a
 view iface model =
@@ -68,7 +68,6 @@ gridItem post =
                 [ img_
                     [ class_ "thread-image"
                     , src_ "/a/thumb/1111111111111.png"
-                    , alt_ "Opening post image"
                     , title_ ( toMisoString $ show $ CatalogPost.bump_time post )
                     ]
                 ]
@@ -79,7 +78,8 @@ gridItem post =
                   , p_
                       [ class_ "intro" ]
                       [ span_
-                          [ class_ "subject" ]subject
+                          [ class_ "subject" ]
+                          subject
                       ]
                   ] ++ body
                 )
