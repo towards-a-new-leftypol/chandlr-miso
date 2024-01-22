@@ -94,7 +94,7 @@ gridItem post =
     body = map (rawHtml . toMisoString) $ maybeToList $ CatalogPost.body post
 
     post_count_str :: MisoString
-    post_count_str = "R: " `append` (toMisoString $ CatalogPost.post_count post)
+    post_count_str = "R: " `append` (toMisoString $ CatalogPost.estimated_post_count post) `append` "+"
 
     thread_url :: MisoString
     thread_url = toMisoString $ intercalate "/"

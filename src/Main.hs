@@ -133,7 +133,7 @@ mainUpdate (HaveLatest (Client.HttpResponse {..})) m = m <#
             consoleLog "Didn't get anything back from API"
             return NoAction
         Just posts -> do
-            mapM_ (consoleLog . toJSString . show) posts
+            -- mapM_ (consoleLog . toJSString . show) posts
             return $ GridAction $ Grid.DisplayItems posts
 
 mainUpdate GetLatest m = m <# Client.fetchLatest (clientModel m) iClient
@@ -165,7 +165,7 @@ iClient = Client.Interface
  - TODO:
  -  - Create Hello World page render ✓
  -  - Create CatalogGrid component (static at first) ✓
- -  - Get postgrest url from page header and perform an initial xhr request
+ -  - Get postgrest url from page header and perform an initial xhr request ✓
  -
  -  - do I need to move out everything into another project called chandlr-common?
  -      - if I want to use the isomorphic feature of miso, then yes

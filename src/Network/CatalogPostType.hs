@@ -22,7 +22,8 @@ data CatalogPost = CatalogPost
     , subject         :: Maybe Text
     , email           :: Maybe Text
     , thread_id       :: Int
-    , post_count      :: Int
+    -- , post_count      :: Int
+    , estimated_post_count :: Int
     , site_name       :: String
     , pathpart        :: String
     --, site_id         :: Int
