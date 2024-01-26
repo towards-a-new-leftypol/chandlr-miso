@@ -63,9 +63,10 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
 initialModel
     :: JSString
     -> Int
+    -> JSString
     -> Model
-initialModel pgroot client_fetch_count = Model
-    { gridModel = Grid.initialModel
+initialModel pgroot client_fetch_count media_root = Model
+    { gridModel = Grid.initialModel media_root
     , clientModel = Client.Model
         { Client.pgApiRoot = pgroot
         , Client.fetchCount = client_fetch_count
@@ -99,7 +100,10 @@ main = do
     pg_fetch_count <- getMetadata "postgrest-fetch-count" >>=
         return . maybe 1000 (read . fromJSString)
 
-    let initial_model = initialModel pg_api_root pg_fetch_count
+    media_root <- getMetadata "media-root" >>=
+        return . maybe "undefined" id
+
+    let initial_model = initialModel pg_api_root pg_fetch_count media_root
 
     startApp App
         { model         = initial_model

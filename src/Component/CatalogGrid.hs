@@ -9,14 +9,15 @@ module Component.CatalogGrid
 , update
 ) where
 
-import Data.List (intercalate)
 import Data.Maybe (maybeToList)
-import Data.JSString (append)
+import Data.Text (pack, Text)
+import qualified Data.Text as T
+import Data.JSString (append, JSString)
 import Miso
     ( View, div_ , class_ , img_ , href_ , a_
     , src_ , title_ , strong_ , span_
-    , p_ , br_ , id_ , Effect , noEff, width_
-    , height_, text, rawHtml
+    , p_ , id_ , Effect , noEff
+    , text, rawHtml
     )
 import Miso.String (toMisoString, MisoString)
 
@@ -24,11 +25,15 @@ import Network.CatalogPostType (CatalogPost)
 import qualified Network.CatalogPostType as CatalogPost
 
 data Model = Model
-  { displayItems :: [ CatalogPost ]
+  { display_items :: [ CatalogPost ]
+  , media_root :: MisoString
   } deriving Eq
 
-initialModel :: Model
-initialModel = Model { displayItems = [] }
+initialModel :: JSString -> Model
+initialModel media_root = Model
+    { display_items = []
+    , media_root = toMisoString media_root
+    }
 
 data Action = DisplayItems [ CatalogPost ]
 
@@ -42,7 +47,7 @@ update
     -> Action
     -> Model
     -> Effect a Model
-update _ (DisplayItems xs) m = noEff (m { displayItems = xs })
+update _ (DisplayItems xs) m = noEff (m { display_items = xs })
 -- update _ _ m = noEff m
 
 view :: Interface a -> Model -> View a
@@ -53,12 +58,12 @@ view iface model =
             [ class_ "threads" ]
             [ div_
                 [ id_ "Grid" ]
-                (map gridItem (displayItems model))
+                (map (gridItem model) (display_items model))
             ]
         ]
 
-gridItem :: CatalogPost -> View a
-gridItem post =
+gridItem :: Model -> CatalogPost -> View a
+gridItem m post =
     div_
         [ class_ "mix" ]
         [ div_
@@ -67,7 +72,7 @@ gridItem post =
                 [ href_ thread_url ]
                 [ img_
                     [ class_ "thread-image"
-                    , src_ "/a/thumb/1111111111111.png"
+                    , src_ thumb_url
                     , title_ ( toMisoString $ show $ CatalogPost.bump_time post )
                     ]
                 ]
@@ -96,9 +101,28 @@ gridItem post =
     post_count_str :: MisoString
     post_count_str = "R: " `append` (toMisoString $ CatalogPost.estimated_post_count post) `append` "+"
 
+    thumb_url :: MisoString
+    thumb_url  =
+        case mthumb_path of
+            -- TODO: what about embeds!?
+            Nothing -> "/static/default_thumbnail.png"
+            Just thumb_path -> (media_root m) `append` (toMisoString thumb_path)
+
+    mthumb_path :: Maybe Text
+    mthumb_path = do
+        file_name <- CatalogPost.file_name post
+        thumb_ext <- CatalogPost.file_thumb_extension post
+
+        return $
+            "/" <> CatalogPost.site_name post
+            <> "/" <> CatalogPost.pathpart post
+            <> "/" <> (pack $ show $ CatalogPost.board_thread_id post)
+            <> "/thumbnail_" <> file_name
+            <> "." <> thumb_ext
+
     thread_url :: MisoString
-    thread_url = toMisoString $ intercalate "/"
+    thread_url = toMisoString $ T.intercalate "/"
       [ CatalogPost.site_name post
       , CatalogPost.pathpart post
-      , show $ CatalogPost.board_thread_id post
+      , pack $ show $ CatalogPost.board_thread_id post
       ]
