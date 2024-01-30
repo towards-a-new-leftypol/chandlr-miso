@@ -82,7 +82,9 @@ executable chandlr
                        ghcjs-dom-jsffi,
                        text,
                        time,
-                       bytestring
+                       bytestring,
+                       filepath,
+                       network-uri
 
     -- Directories containing source files.
     hs-source-dirs:   src

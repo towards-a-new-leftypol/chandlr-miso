@@ -17,7 +17,9 @@ import Miso
     ( View, div_ , class_ , img_ , href_ , a_
     , src_ , title_ , strong_ , span_
     , p_ , id_ , Effect , noEff
-    , text, rawHtml
+    , text, rawHtml, onWithOptions
+    , defaultOptions, preventDefault
+    , Attribute, emptyDecoder
     )
 import Miso.String (toMisoString, MisoString)
 
@@ -30,17 +32,23 @@ data Model = Model
   } deriving Eq
 
 initialModel :: JSString -> Model
-initialModel media_root = Model
+initialModel media_root_ = Model
     { display_items = []
-    , media_root = toMisoString media_root
+    , media_root = toMisoString media_root_
     }
 
-data Action = DisplayItems [ CatalogPost ]
+data Action
+    = DisplayItems [ CatalogPost ]
 
 data Interface a = Interface
-    { passAction   :: Action -> a
-    , selectThread :: ()
+    { passAction :: Action -> a
+    , threadSelected :: CatalogPost -> a
     }
+
+
+-- Custom event handler with preventDefault set to True
+onClick_ :: a -> Attribute a
+onClick_ action = onWithOptions defaultOptions { preventDefault = True } "click" emptyDecoder (const action)
 
 update
     :: Interface a
@@ -58,18 +66,20 @@ view iface model =
             [ class_ "threads" ]
             [ div_
                 [ id_ "Grid" ]
-                (map (gridItem model) (display_items model))
+                (map (gridItem iface model) (display_items model))
             ]
         ]
 
-gridItem :: Model -> CatalogPost -> View a
-gridItem m post =
+gridItem :: Interface a -> Model -> CatalogPost -> View a
+gridItem iface m post =
     div_
         [ class_ "mix" ]
         [ div_
             [ class_ "thread grid-li grid-size-small" ]
             [ a_
-                [ href_ thread_url ]
+                [ href_ thread_url
+                , onClick_ (threadSelected iface post)
+                ]
                 [ img_
                     [ class_ "thread-image"
                     , src_ thumb_url
