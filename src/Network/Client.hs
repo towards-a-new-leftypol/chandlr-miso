@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Network.Client
     ( Http.HttpActionResult
@@ -27,20 +28,8 @@ import Miso (effectSub, Effect)
 
 import qualified Network.Http as Http
 import Network.CatalogPostType (CatalogPost)
-
-
-data Action = Connect (Http.HttpActionResult [CatalogPost])
-
-
-data Interface a = Interface
-    { passAction :: Action -> a
-    , returnResult :: Http.HttpResult [CatalogPost] -> a
-    }
-
-data Model = Model
-  { pgApiRoot :: JSString
-  , fetchCount :: Int
-  } deriving Eq
+import qualified Action as A
+import Network.ClientTypes
 
 
 update
@@ -58,6 +47,24 @@ data FetchCatalogArgs = FetchCatalogArgs
   , max_row_read :: Int
   } deriving (Generic, ToJSON)
 
+
+http_
+    :: (ToJSON b)
+    => Model
+    -> Interface a
+    -> JSString
+    -> Http.HttpMethod
+    -> Maybe b
+    -> IO a
+http_ m iface api_path method payload = do
+    Http.http
+        (pgApiRoot m <> api_path)
+        method
+        [("Content-Type", "application/json")]
+        payload
+    >>= return . (passAction iface) . Connect
+
+
 fetchLatest :: Model -> Interface a -> IO a
 fetchLatest m iface = do
     ct <- getCurrentTime
@@ -72,3 +79,12 @@ fetchLatest m iface = do
             }
         )
     >>= return . (passAction iface) . Connect
+
+
+getThread :: A.GetThreadArgs -> IO a
+getThread A.GetThreadArgs {..} = undefined
+
+
+-- TODO: Action.GetLatest needs to be refactored out into a shared
+--      data structure that we can pass as the argument for this getThread
+--      function

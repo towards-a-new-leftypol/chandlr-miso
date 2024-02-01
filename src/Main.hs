@@ -67,7 +67,7 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
         h_latest = const GetLatest
 
         h_thread :: Text -> Text -> BoardThreadId -> Model -> Action
-        h_thread website board_pathpart board_thread_id _ = GetThread {..}
+        h_thread website board_pathpart board_thread_id _ = GetThread GetThreadArgs {..}
 
 
 initialModel
@@ -141,7 +141,7 @@ mainView model = view
 
         catalog_view :: Model -> View Action
         catalog_view _ = div_ []
-            [ h1_ [] [ text "Hello World" ]
+            [ h1_ [] [ text "Overboard Catalog" ]
             , Grid.view iGrid (gridModel model)
             ]
 
@@ -172,7 +172,7 @@ mainUpdate GetLatest m = m <# Client.fetchLatest (clientModel m) iClient
 
 -- mainUpdate GetThread {..} m = noEff m
 
-mainUpdate GetThread {..} m = m <# do
+mainUpdate (GetThread GetThreadArgs{..}) m = m <# do
     consoleLog $ "Thread " `append` (pack $ show $ board_thread_id)
     pushURI new_current_uri
     -- TODO: Need to return a Client action here to get the thread data
@@ -207,7 +207,7 @@ iGrid = Grid.Interface
 
     where
         mkGetThread :: CatalogPost -> Action
-        mkGetThread post = GetThread
+        mkGetThread post = GetThread GetThreadArgs
             { website = CatalogPost.site_name post
             , board_pathpart = CatalogPost.pathpart post
             , board_thread_id = CatalogPost.board_thread_id post
@@ -224,9 +224,9 @@ iClient = Client.Interface
  -  - Create the thread view
  -      - add routing so when you click in the catalog it goes to the thread
  -          - register onClick ✓
- -          - pevent default and consoleLog the event
+ -          - pevent default and consoleLog the event ✓
  -          - display page
- -          - history api / navigation for browser history
+ -          - history api / navigation for browser history ✓
  -      - create component ✓
  -
  -

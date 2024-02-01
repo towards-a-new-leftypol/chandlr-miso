@@ -36,6 +36,7 @@ import Miso (consoleLog)
 data HttpMethod = GET | PUT | POST | DELETE | PATCH
     deriving Show
 
+
 data HttpResult a
     = Error
     | HttpResponse
@@ -45,7 +46,6 @@ data HttpResult a
         }
 
 type HttpActionResult a = (IO (), MVar (HttpResult a)) -- (abort, result)
-
 
 type Header = (JSString, JSString)
 
