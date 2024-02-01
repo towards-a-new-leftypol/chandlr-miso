@@ -12,6 +12,7 @@ import qualified Data.Text as T
 import Network.URI (uriPath)
 import System.FilePath ((</>))
 
+import Data.Aeson (FromJSON)
 import Data.JSString (pack, append)
 import Miso
     ( View
@@ -131,7 +132,6 @@ main = do
 
 mainView :: Model -> View Action
 mainView model = view
-
     where
         view =
           either (const page404) id
@@ -168,7 +168,7 @@ mainUpdate (HaveLatest (Client.HttpResponse {..})) m = m <#
             -- mapM_ (consoleLog . toJSString . show) posts
             return $ GridAction $ Grid.DisplayItems posts
 
-mainUpdate GetLatest m = m <# Client.fetchLatest (clientModel m) iClient
+mainUpdate GetLatest m = m <# Client.fetchLatest (clientModel m) (iClient HaveLatest)
 
 -- mainUpdate GetThread {..} m = noEff m
 
@@ -194,8 +194,8 @@ mainUpdate (GridAction ga) m =
     Grid.update iGrid ga (gridModel m)
     >>= \gm -> noEff (m { gridModel = gm })
 
-mainUpdate (ClientAction ca) m =
-    Client.update iClient ca (clientModel m)
+mainUpdate (ClientAction action ca) m =
+    Client.update (iClient action) ca (clientModel m)
     >>= \cm -> noEff (m { clientModel = cm })
 
 
@@ -213,10 +213,10 @@ iGrid = Grid.Interface
             , board_thread_id = CatalogPost.board_thread_id post
             }
 
-iClient :: Client.Interface Action
-iClient = Client.Interface
-    { Client.passAction = ClientAction
-    , Client.returnResult = HaveLatest
+iClient :: (FromJSON a) => (Client.HttpResult a -> Action) -> Client.Interface Action a
+iClient action = Client.Interface
+    { Client.passAction = ClientAction action
+    , Client.returnResult = action
     }
 
 {-

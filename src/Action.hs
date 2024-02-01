@@ -1,11 +1,14 @@
+{-# LANGUAGE ExistentialQuantification #-}
+
 module Action where
 
 import Data.Text (Text)
-import Component.CatalogGrid as Grid
+import Data.Aeson (FromJSON)
 import Data.Int (Int64)
 import Miso (URI)
 
-import Network.ClientTypes as C
+import qualified Component.CatalogGrid as Grid
+import qualified Network.ClientTypes as C
 import Network.CatalogPostType (CatalogPost)
 import Network.Http (HttpResult)
 
@@ -20,6 +23,6 @@ data Action
     | GetLatest
     | GetThread GetThreadArgs
     | HaveLatest (HttpResult [CatalogPost])
-    | ClientAction C.Action
+    | forall a. (FromJSON a) => ClientAction (HttpResult a -> Action) (C.Action a)
     | ChangeURI URI
     | NoAction

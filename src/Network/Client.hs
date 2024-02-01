@@ -19,7 +19,7 @@ import GHC.Generics
 import Control.Monad (void)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
-import Data.Aeson (ToJSON)
+import Data.Aeson (ToJSON, FromJSON)
 import Data.Time (getCurrentTime)
 import Data.Time.Clock (UTCTime)
 
@@ -33,13 +33,13 @@ import Network.ClientTypes
 
 
 update
-    :: Interface a
-    -> Action
+    :: Interface a b
+    -> Action b
     -> Model
     -> Effect a Model
 update iface (Connect (abort, resultVar)) m = effectSub m $
     \sink -> void $ forkIO $ do
-        result :: Http.HttpResult [CatalogPost] <- takeMVar resultVar
+        result :: Http.HttpResult b <- takeMVar resultVar
         sink $ (returnResult iface) result
 
 data FetchCatalogArgs = FetchCatalogArgs
@@ -49,12 +49,12 @@ data FetchCatalogArgs = FetchCatalogArgs
 
 
 http_
-    :: (ToJSON b)
+    :: (ToJSON c, FromJSON b)
     => Model
-    -> Interface a
+    -> Interface a b
     -> JSString
     -> Http.HttpMethod
-    -> Maybe b
+    -> Maybe c
     -> IO a
 http_ m iface api_path method payload = do
     Http.http
@@ -65,20 +65,16 @@ http_ m iface api_path method payload = do
     >>= return . (passAction iface) . Connect
 
 
-fetchLatest :: Model -> Interface a -> IO a
+fetchLatest :: Model -> Interface a [ CatalogPost ] -> IO a
 fetchLatest m iface = do
-    ct <- getCurrentTime
+    now <- getCurrentTime
 
-    Http.http
-        ((pgApiRoot m) <> ("/rpc/fetch_catalog" :: JSString))
-        Http.POST
-        [("Content-Type", "application/json")]
-        ( Just $ FetchCatalogArgs
-            { max_time = ct
+    let payload = Just $ FetchCatalogArgs
+            { max_time = now
             , max_row_read = fetchCount m
             }
-        )
-    >>= return . (passAction iface) . Connect
+
+    http_ m iface "/rpc/fetch_catalog" Http.POST payload
 
 
 getThread :: A.GetThreadArgs -> IO a
