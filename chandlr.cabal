@@ -68,7 +68,12 @@ executable chandlr
                       Network.Client
                       Network.ClientTypes
                       Network.CatalogPostType
+                      Network.BoardType
+                      Network.SiteType
+                      Network.PostType
+                      Network.ThreadType
                       Routes
+                      Common.AttachmentType
 
 
     -- LANGUAGE extensions used by modules in this package.

@@ -30,6 +30,7 @@ import Miso.String (toMisoString)
 
 import qualified Network.Http as Http
 import Network.CatalogPostType (CatalogPost)
+import Network.SiteType (Site)
 import qualified Action as A
 import Network.ClientTypes
 
@@ -58,7 +59,7 @@ http_
     -> Http.HttpMethod
     -> Maybe c
     -> IO a
-http_ m iface api_path method payload = do
+http_ m iface api_path method payload =
     Http.http
         (pgApiRoot m <> api_path)
         method
@@ -79,7 +80,7 @@ fetchLatest m iface = do
     http_ m iface "/rpc/fetch_catalog" Http.POST payload
 
 
-getThread :: Model -> Interface a () -> A.GetThreadArgs -> IO a
+getThread :: Model -> Interface a [ Site ] -> A.GetThreadArgs -> IO a
 getThread m iface A.GetThreadArgs {..} =
     http_ m iface path Http.GET (Nothing :: Maybe ())
 

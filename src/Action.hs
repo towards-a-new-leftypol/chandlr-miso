@@ -11,6 +11,7 @@ import qualified Component.CatalogGrid as Grid
 import qualified Network.ClientTypes as C
 import Network.CatalogPostType (CatalogPost)
 import Network.Http (HttpResult)
+import Network.SiteType (Site)
 
 data GetThreadArgs = GetThreadArgs
     { website         :: Text
@@ -22,8 +23,8 @@ data Action
     = GridAction Grid.Action
     | GetLatest
     | GetThread GetThreadArgs
-    | HaveLatest (HttpResult [CatalogPost])
-    | HaveThread (HttpResult ())
+    | HaveLatest (HttpResult [ CatalogPost ])
+    | HaveThread (HttpResult [ Site ])
     | forall a. (FromJSON a) => ClientAction (HttpResult a -> Action) (C.Action a)
     | ChangeURI URI
     | NoAction

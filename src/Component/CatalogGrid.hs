@@ -41,7 +41,7 @@ data Action
     = DisplayItems [ CatalogPost ]
 
 data Interface a = Interface
-    { passAction :: Action -> a
+    { passAction :: Action -> a -- We're not using this.
     , threadSelected :: CatalogPost -> a
     }
 
@@ -56,7 +56,6 @@ update
     -> Model
     -> Effect a Model
 update _ (DisplayItems xs) m = noEff (m { display_items = xs })
--- update _ _ m = noEff m
 
 view :: Interface a -> Model -> View a
 view iface model =
