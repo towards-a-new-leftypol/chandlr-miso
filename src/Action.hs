@@ -23,6 +23,7 @@ data Action
     | GetLatest
     | GetThread GetThreadArgs
     | HaveLatest (HttpResult [CatalogPost])
+    | HaveThread (HttpResult ())
     | forall a. (FromJSON a) => ClientAction (HttpResult a -> Action) (C.Action a)
     | ChangeURI URI
     | NoAction

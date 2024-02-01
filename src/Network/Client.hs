@@ -11,6 +11,7 @@ module Network.Client
     , Action (..)
     , Interface (..)
     , fetchLatest
+    , getThread
     , Model (..)
     , update
     ) where
@@ -25,6 +26,7 @@ import Data.Time.Clock (UTCTime)
 
 import GHCJS.DOM.Types (JSString)
 import Miso (effectSub, Effect)
+import Miso.String (toMisoString)
 
 import qualified Network.Http as Http
 import Network.CatalogPostType (CatalogPost)
@@ -77,10 +79,13 @@ fetchLatest m iface = do
     http_ m iface "/rpc/fetch_catalog" Http.POST payload
 
 
-getThread :: A.GetThreadArgs -> IO a
-getThread A.GetThreadArgs {..} = undefined
+getThread :: Model -> Interface a () -> A.GetThreadArgs -> IO a
+getThread m iface A.GetThreadArgs {..} =
+    http_ m iface path Http.GET (Nothing :: Maybe ())
 
-
--- TODO: Action.GetLatest needs to be refactored out into a shared
---      data structure that we can pass as the argument for this getThread
---      function
+    where
+        path = "/sites?"
+            <> "select=*,boards(*,threads(*,posts(*,attachments(*))))"
+            <> "&name=eq." <> toMisoString website
+            <> "&boards.pathpart=eq." <> toMisoString board_pathpart
+            <> "&boards.threads.board_thread_id=eq." <> toMisoString (show board_thread_id)

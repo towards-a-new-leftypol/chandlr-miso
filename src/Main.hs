@@ -168,15 +168,22 @@ mainUpdate (HaveLatest (Client.HttpResponse {..})) m = m <#
             -- mapM_ (consoleLog . toJSString . show) posts
             return $ GridAction $ Grid.DisplayItems posts
 
+mainUpdate (HaveThread Client.Error) m = m <# do
+    consoleLog "Getting Thread failed!"
+    return NoAction
+
+mainUpdate (HaveThread (Client.HttpResponse {..})) m = m <# do
+    consoleLog "Have Thread!"
+    return NoAction
+
 mainUpdate GetLatest m = m <# Client.fetchLatest (clientModel m) (iClient HaveLatest)
 
 -- mainUpdate GetThread {..} m = noEff m
 
-mainUpdate (GetThread GetThreadArgs{..}) m = m <# do
+mainUpdate (GetThread GetThreadArgs {..}) m = m <# do
     consoleLog $ "Thread " `append` (pack $ show $ board_thread_id)
     pushURI new_current_uri
-    -- TODO: Need to return a Client action here to get the thread data
-    return NoAction
+    Client.getThread (clientModel m) (iClient HaveThread) GetThreadArgs {..}
 
     where
         new_current_uri :: URI

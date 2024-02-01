@@ -1,2 +1,2 @@
-curl -v 'http://localhost:3000/threads?select=posts(*,attachments(*)),boards()&board_thread_id=eq.466060&posts.order=board_post_id.asc&boards.pathpart=eq.leftypol' \
+curl -v 'http://localhost:3000/sites?select=*,boards(*,threads(*,posts(*,attachments(*))))&name=eq.leftychan&boards.pathpart=eq.ga&boards.threads.board_thread_id=eq.11787' \
     -H "Content-Type: application/json"
