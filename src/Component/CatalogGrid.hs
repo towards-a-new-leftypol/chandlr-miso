@@ -108,7 +108,7 @@ gridItem iface m post =
     body = map (rawHtml . toMisoString) $ maybeToList $ CatalogPost.body post
 
     post_count_str :: MisoString
-    post_count_str = "R: " `append` (toMisoString $ CatalogPost.estimated_post_count post) `append` "+"
+    post_count_str = "R: " `append` (toMisoString $ (CatalogPost.estimated_post_count post) - 1) `append` "+"
 
     thumb_url :: MisoString
     thumb_url  =

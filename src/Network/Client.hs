@@ -90,3 +90,4 @@ getThread m iface A.GetThreadArgs {..} =
             <> "&name=eq." <> toMisoString website
             <> "&boards.pathpart=eq." <> toMisoString board_pathpart
             <> "&boards.threads.board_thread_id=eq." <> toMisoString (show board_thread_id)
+            <> "&boards.threads.posts.order=board_post_id.asc"

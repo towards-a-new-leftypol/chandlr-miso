@@ -72,6 +72,9 @@ executable chandlr
                       Network.SiteType
                       Network.PostType
                       Network.ThreadType
+                      Component.ThreadView
+                      Component.Thread.Files
+                      Component.Thread.Intro
                       Routes
                       Common.AttachmentType
 
