@@ -35,6 +35,7 @@ import qualified Network.BoardType as Board
 import qualified Network.ThreadType as Thread
 import Component.Thread.Files (files)
 import Component.Thread.Intro (intro)
+import BodyParser
 
 data Model = Model
   { site :: Site

@@ -26,9 +26,11 @@ intro :: Post -> View a
 intro post = span_
   [ class_ "intro" ]
   ( subject ++
-    [ span_
-        [ class_ "name" ][ "Anonymous" ]
+    [ " "
+    , span_
+        [ class_ "name" ][ text name ]
     -- TODO: Add flags (don't have that data in the db yet)
+    , " "
     , time_
         [ textProp "datetime" "2024-01-19T11:53:33Z"
         , textProp "data-local" "true"
@@ -43,13 +45,16 @@ intro post = span_
     , a_
         [ class_ "post_no"
         , href_ "/leftypol/res/477700.html#q477700"
-        ][ "477700" ]
+        ][ text $ toMisoString $ show $ Post.board_post_id post ]
     ]
   )
 
   where
     subject :: [ View a ]
     subject = map (mkSubject . toMisoString) $ toList $ Post.subject post
+
+    name :: JSString
+    name = maybe "Anonymous" toMisoString $ Post.name post
 
     mkSubject :: JSString -> View a
     mkSubject s = span_ 
