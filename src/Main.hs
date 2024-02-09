@@ -6,7 +6,7 @@
 module Main where
 
 import Data.Proxy
-import Data.Maybe (maybe)
+import Data.Maybe (maybe, fromJust)
 import Data.Text (Text)
 import qualified Data.Text as T
 import Network.URI (uriPath)
@@ -180,7 +180,7 @@ mainUpdate (HaveThread Client.Error) m = m <# do
 
 mainUpdate (HaveThread (Client.HttpResponse {..})) m = new_model <# do
     consoleLog "Have Thread!"
-    return NoAction
+    return $ ThreadAction $ Thread.RenderSite $ Thread.site $ fromJust $ thread_model new_model
 
     where
         new_model = m
@@ -217,6 +217,13 @@ mainUpdate (ClientAction action ca) m =
     Client.update (iClient action) ca (client_model m)
     >>= \cm -> noEff (m { client_model = cm })
 
+mainUpdate (ThreadAction ta) model = do
+    tm :: Maybe Thread.Model <- case thread_model model of
+        Nothing -> noEff Nothing
+        Just m -> Thread.update iThread ta m >>= return . Just
+
+    noEff model { thread_model = tm }
+
 
 iGrid :: Grid.Interface Action
 iGrid = Grid.Interface
@@ -237,6 +244,9 @@ iClient action = Client.Interface
     { Client.passAction = ClientAction action
     , Client.returnResult = action
     }
+
+iThread :: Thread.Interface Action
+iThread = Thread.Interface { Thread.passAction = ThreadAction }
 
 {-
  - TODO:

@@ -6,6 +6,7 @@ module Component.ThreadView
 , Action (..)
 , update
 , view
+, Interface (..)
 ) where
 
 import Miso
@@ -21,9 +22,11 @@ import Miso
   , h2_
   , rawHtml
   , Attribute
+  , (<#)
+  , consoleLog
   )
 
-import Data.Maybe (maybeToList)
+import Data.Maybe (maybeToList, catMaybes)
 import Miso.String (toMisoString)
 import GHCJS.DOM.Types (JSString)
 
@@ -37,21 +40,42 @@ import Component.Thread.Files (files)
 import Component.Thread.Intro (intro)
 import BodyParser
 
+type PostWithBody = (Post, [ PostPart ])
+
 data Model = Model
   { site :: Site
   , media_root :: JSString
+  , post_bodies :: [ PostWithBody ]
   } deriving Eq
 
 initialModel :: JSString -> Site -> Model
 initialModel mroot s = Model
     { site = s
+    , post_bodies = []
     , media_root = mroot
     }
 
-data Action = RenderSite Site
+data Action
+    = RenderSite Site
+    | UpdatePostBodies [ PostWithBody ]
 
-update :: Action -> Model -> Effect a Model
-update (RenderSite s) m = noEff (m { site = s })
+data Interface a = Interface { passAction :: Action -> a }
+
+update :: Interface a -> Action -> Model -> Effect a Model
+update iface (RenderSite s) m = m { site = s } <# do
+    bodies <- mapM parsePostBody (catMaybes $ map Post.body posts)
+
+    mapM_ (consoleLog . toMisoString . show) bodies
+
+    return $ passAction iface $ UpdatePostBodies $ zip posts bodies
+
+    where
+        posts :: [ Post ]
+        posts = Thread.posts $ head $ Board.threads $ head $ Site.boards s
+--update (RenderSite s) m = noEff (m { site = s })
+
+update _ (UpdatePostBodies pwbs) m = noEff m { post_bodies = pwbs }
+
 
 view :: Model -> View a
 view m =
@@ -108,6 +132,7 @@ op m op_post =
         multi
             | length (Post.attachments op_post) > 1 = [ class_ "multifile" ]
             | otherwise = []
+
 
 reply :: Model -> Post -> View a
 reply m post = div_

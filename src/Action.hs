@@ -12,6 +12,7 @@ import qualified Network.ClientTypes as C
 import Network.CatalogPostType (CatalogPost)
 import Network.Http (HttpResult)
 import Network.SiteType (Site)
+import qualified Component.ThreadView as Thread
 
 data GetThreadArgs = GetThreadArgs
     { website         :: Text
@@ -26,5 +27,6 @@ data Action
     | HaveLatest (HttpResult [ CatalogPost ])
     | HaveThread (HttpResult [ Site ])
     | forall a. (FromJSON a) => ClientAction (HttpResult a -> Action) (C.Action a)
+    | ThreadAction Thread.Action
     | ChangeURI URI
     | NoAction

@@ -22,6 +22,7 @@ import GHCJS.DOM.JSFFI.Generated.Node hiding (contains)
 import qualified GHCJS.DOM.JSFFI.Generated.NodeList as NodeList
 import GHCJS.DOM.JSFFI.Generated.DOMTokenList (contains)
 import Data.Text (Text)
+import Miso (consoleLog)
 
 
 data PostPart
@@ -40,7 +41,7 @@ data PostPart
     | Underlined    [ PostPart ]
     | Italics       [ PostPart ]
     | Strikethrough [ PostPart ]
-    deriving Show
+    deriving (Show, Eq)
 
 
 nodeListToList :: NodeList -> IO [ Node ]
@@ -80,13 +81,16 @@ toPostPart_ node_type node
         tagName :: JSString <- getTagName element
 
         case tagName of
-          "a"      -> parseAnchor element
-          "span"   -> parseSpan element
-          "em"     -> parseEm element
-          "strong" -> parseStrong element
-          "u"      -> parseU element
-          "s"      -> parseS element
-          _        -> return $ SimpleText "Unsupported element"
+          "A"      -> parseAnchor element
+          "SPAN"   -> parseSpan element
+          "EM"     -> parseEm element
+          "STRONG" -> parseStrong element
+          "U"      -> parseU element
+          "S"      -> parseS element
+          "BR"     -> return Skip
+          _        -> do
+            consoleLog tagName
+            return $ SimpleText "Unsupported element"
     | otherwise = return Skip
 
     where
@@ -124,10 +128,10 @@ parseSpan element = do
      | otherwise   -> return $ SimpleText "Unsupported span class"
 
 
-parseNodeList :: NodeList -> IO [PostPart]
+parseNodeList :: NodeList -> IO [ PostPart ]
 parseNodeList nodes = nodeListToList nodes >>= mapM toPostPart
 
-parseChildNodes :: Element -> IO [PostPart]
+parseChildNodes :: Element -> IO [ PostPart ]
 parseChildNodes element = getChildNodes element >>= parseNodeList
 
 parseEm :: Element -> IO PostPart
