@@ -38,7 +38,7 @@ import qualified Network.ThreadType as Thread
 import Component.Thread.Files (files)
 import Component.Thread.Intro (intro)
 import BodyParser
-import Component.BodyRender
+import qualified Component.BodyRender as Body
 
 type PostWithBody = (Post, [ PostPart ])
 
@@ -115,7 +115,7 @@ op m op_post =
         (
             [ class_ "post op"
             , id_ "op_477700"
-            ] ++ multi
+            ] ++ multi op_post
         )
         [ intro op_post
         , div_
@@ -125,14 +125,15 @@ op m op_post =
     ]
 
     where
-        multi :: [ Attribute a ]
-        multi
-            | length (Post.attachments op_post) > 1 = [ class_ "multifile" ]
-            | otherwise = []
-
         body :: [ PostWithBody ] -> [ View a ]
         body [] = []
-        body x = render $ snd $ head x
+        body x = Body.render $ snd $ head x
+
+
+multi :: Post -> [ Attribute a ]
+multi post
+    | length (Post.attachments post) > 1 = [ class_ "multifile" ]
+    | otherwise = []
 
 
 reply :: Model -> PostWithBody -> View a
@@ -142,13 +143,15 @@ reply m (post, parts) = div_
     , textProp "data-board" "leftypol"
     ]
     [ div_
-        [ class_ "post reply"
-        , id_ "reply_477702"
-        ]
+        (
+            [ class_ "post reply"
+            , id_ "reply_477702"
+            ] ++ multi post
+        )
         [ intro post
         , files (media_root m) (site m) post
         , div_
             [ class_ "body" ]
-            (render parts)
+            (Body.render parts)
         ]
     ]

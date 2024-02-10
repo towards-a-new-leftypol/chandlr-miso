@@ -79,6 +79,7 @@ executable chandlr
                       Routes
                       Common.AttachmentType
                       BodyParser
+                      QuoteLinkParser
 
 
     -- LANGUAGE extensions used by modules in this package.
@@ -97,7 +98,8 @@ executable chandlr
                        bytestring,
                        filepath,
                        network-uri,
-                       containers
+                       containers,
+                       parsec
 
     -- Directories containing source files.
     hs-source-dirs:   src

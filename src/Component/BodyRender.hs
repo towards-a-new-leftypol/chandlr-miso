@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Component.BodyRender where
 
@@ -15,9 +16,13 @@ import Miso
     , u_
     , em_
     , s_
+    , title_
     )
 
+import Miso.String (toMisoString, fromMisoString)
+import Text.Parsec (ParseError)
 import BodyParser (PostPart (..))
+import QuoteLinkParser
 
 {-
  - This is the inverse of parsePostBody from BodyParser except
@@ -40,11 +45,24 @@ renderPostPart (PostedUrl u) =
         , target_ "_blank"
         ]
         [ text u ]
+
 renderPostPart Skip = br_ []
-renderPostPart (Quote url) =
-    a_
-        [ href_ url ]
-        [ text url ]
+
+renderPostPart (Quote url) = elems parse_result
+    where
+        parse_result = parseURL $ fromMisoString url
+
+        elems :: Either ParseError ParsedURL -> View a
+        elems (Left err) =
+            a_
+                [ href_ url
+                , title_ $ toMisoString $ show err
+                ]
+                [ text url ]
+        elems (Right ParsedURL {..}) =
+            a_
+                [ href_ url ]
+                [ text url ]
 
 renderPostPart (GreenText parts) =
     span_ [ class_ "quote" ] (render parts)
