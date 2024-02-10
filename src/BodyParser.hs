@@ -55,12 +55,12 @@ nodeListToList l = do
 parsePostBody :: Text -> IO [ PostPart ]
 parsePostBody htmlString = do
   Just doc <- currentDocument
+
   container <- createElement doc ("div" :: Text)
 
   -- Set the innerHTML of the container to the HTML string
   setInnerHTML container htmlString
 
-  -- Iterate over the newly created elements in the container
   children <- getChildNodes container
 
   parseNodeList children

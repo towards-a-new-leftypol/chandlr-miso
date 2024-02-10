@@ -20,13 +20,12 @@ import Miso
   , id_
   , textProp
   , h2_
-  , rawHtml
   , Attribute
   , (<#)
   , consoleLog
   )
 
-import Data.Maybe (maybeToList, catMaybes)
+import Data.Maybe (catMaybes)
 import Miso.String (toMisoString)
 import GHCJS.DOM.Types (JSString)
 
@@ -39,6 +38,7 @@ import qualified Network.ThreadType as Thread
 import Component.Thread.Files (files)
 import Component.Thread.Intro (intro)
 import BodyParser
+import Component.BodyRender
 
 type PostWithBody = (Post, [ PostPart ])
 
@@ -86,7 +86,7 @@ view m =
         , div_
             [ class_ "thread" ]
             (  (op_post thread_posts)
-            ++ map (reply m) (drop 1 thread_posts)
+            ++ map (reply m) (drop 1 (post_bodies m))
             )
         ]
     )
@@ -108,9 +108,6 @@ view m =
         board = Board.pathpart $ head $ Site.boards (site m)
 
 
-body :: Post -> [ View a ]
-body post = map (rawHtml . toMisoString) $ maybeToList $ Post.body post
-
 op :: Model -> Post -> [ View a ]
 op m op_post =
     [ files (media_root m) (site m) op_post
@@ -123,7 +120,7 @@ op m op_post =
         [ intro op_post
         , div_
             [ class_ "body" ]
-            (body op_post)
+            (body $ post_bodies m)
         ]
     ]
 
@@ -133,9 +130,13 @@ op m op_post =
             | length (Post.attachments op_post) > 1 = [ class_ "multifile" ]
             | otherwise = []
 
+        body :: [ PostWithBody ] -> [ View a ]
+        body [] = []
+        body x = render $ snd $ head x
 
-reply :: Model -> Post -> View a
-reply m post = div_
+
+reply :: Model -> PostWithBody -> View a
+reply m (post, parts) = div_
     [ class_ "postcontainer"
     , id_ "pc477702"
     , textProp "data-board" "leftypol"
@@ -148,6 +149,6 @@ reply m post = div_
         , files (media_root m) (site m) post
         , div_
             [ class_ "body" ]
-            (body post)
+            (render parts)
         ]
     ]
