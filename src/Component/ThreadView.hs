@@ -37,16 +37,9 @@ import qualified Network.BoardType as Board
 import qualified Network.ThreadType as Thread
 import Component.Thread.Files (files)
 import Component.Thread.Intro (intro)
+import Component.Thread.Model
 import BodyParser
 import qualified Component.BodyRender as Body
-
-type PostWithBody = (Post, [ PostPart ])
-
-data Model = Model
-  { site :: Site
-  , media_root :: JSString
-  , post_bodies :: [ PostWithBody ]
-  } deriving Eq
 
 initialModel :: JSString -> Site -> Model
 initialModel mroot s = Model
@@ -127,7 +120,7 @@ op m op_post =
     where
         body :: [ PostWithBody ] -> [ View a ]
         body [] = []
-        body x = Body.render $ snd $ head x
+        body x = Body.render m $ snd $ head x
 
 
 multi :: Post -> [ Attribute a ]
@@ -143,6 +136,9 @@ reply m (post, parts) = div_
     , textProp "data-board" "leftypol"
     ]
     [ div_
+        [ class_ "sidearrows" ]
+        [ text ">>" ]
+    , div_
         (
             [ class_ "post reply"
             , id_ "reply_477702"
@@ -152,6 +148,6 @@ reply m (post, parts) = div_
         , files (media_root m) (site m) post
         , div_
             [ class_ "body" ]
-            (Body.render parts)
+            (Body.render m parts)
         ]
     ]

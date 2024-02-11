@@ -23,6 +23,9 @@ import Miso.String (toMisoString, fromMisoString)
 import Text.Parsec (ParseError)
 import BodyParser (PostPart (..))
 import QuoteLinkParser
+import qualified Component.Thread.Model as Model
+import qualified Network.SiteType as Site
+import qualified Network.ThreadType as Thread
 
 {-
  - This is the inverse of parsePostBody from BodyParser except
@@ -34,21 +37,21 @@ import QuoteLinkParser
  - (is there an easy way to render a miso View?, that's what's missing
  - a f :: View a -> Text)
  -}
-render :: [ PostPart ] -> [ View a ]
-render = map renderPostPart
+render :: Model.Model -> [ PostPart ] -> [ View a ]
+render m = map (renderPostPart m)
 
-renderPostPart :: PostPart -> View a
-renderPostPart (SimpleText txt) = text txt
-renderPostPart (PostedUrl u) =
+renderPostPart :: Model.Model -> PostPart -> View a
+renderPostPart _ (SimpleText txt) = text txt
+renderPostPart _ (PostedUrl u) =
     a_
         [ href_ u
         , target_ "_blank"
         ]
         [ text u ]
 
-renderPostPart Skip = br_ []
+renderPostPart _ Skip = br_ []
 
-renderPostPart (Quote url) = elems parse_result
+renderPostPart m (Quote url) = elems parse_result
     where
         parse_result = parseURL $ fromMisoString url
 
@@ -64,27 +67,27 @@ renderPostPart (Quote url) = elems parse_result
                 [ href_ url ]
                 [ text url ]
 
-renderPostPart (GreenText parts) =
-    span_ [ class_ "quote" ] (render parts)
+renderPostPart m (GreenText parts) =
+    span_ [ class_ "quote" ] (render m parts)
 
-renderPostPart (OrangeText parts) =
-    span_ [ class_ "orangeQuote" ] (render parts)
+renderPostPart m (OrangeText parts) =
+    span_ [ class_ "orangeQuote" ] (render m parts)
 
-renderPostPart (RedText parts) =
-    span_ [ class_ "heading" ] (render parts)
+renderPostPart m (RedText parts) =
+    span_ [ class_ "heading" ] (render m parts)
 
-renderPostPart (Spoiler parts) =
-    span_ [ class_ "spoiler" ] (render parts)
+renderPostPart m (Spoiler parts) =
+    span_ [ class_ "spoiler" ] (render m parts)
 
-renderPostPart (Bold parts) =
-    strong_ [] (render parts)
+renderPostPart m (Bold parts) =
+    strong_ [] (render m parts)
 
-renderPostPart (Underlined parts) =
-    u_ [] (render parts)
+renderPostPart m (Underlined parts) =
+    u_ [] (render m parts)
 
-renderPostPart (Italics parts) =
-    em_ [] (render parts)
+renderPostPart m (Italics parts) =
+    em_ [] (render m parts)
 
-renderPostPart (Strikethrough parts) =
-    s_ [] (render parts)
+renderPostPart m (Strikethrough parts) =
+    s_ [] (render m parts)
 

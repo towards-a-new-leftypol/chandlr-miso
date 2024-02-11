@@ -75,6 +75,7 @@ executable chandlr
                       Component.ThreadView
                       Component.Thread.Files
                       Component.Thread.Intro
+                      Component.Thread.Model
                       Component.BodyRender
                       Routes
                       Common.AttachmentType
