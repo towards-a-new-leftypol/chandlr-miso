@@ -15,7 +15,7 @@ import qualified Data.Text as T
 import Data.JSString (append, JSString)
 import Miso
     ( View, div_ , class_ , img_ , href_ , a_
-    , src_ , title_ , strong_ , span_
+    , src_ , title_ , b_ , span_
     , p_ , id_ , Effect , noEff
     , text, rawHtml, onWithOptions
     , defaultOptions, preventDefault
@@ -72,32 +72,34 @@ view iface model =
 gridItem :: Interface a -> Model -> CatalogPost -> View a
 gridItem iface m post =
     div_
-        [ class_ "mix" ]
-        [ div_
-            [ class_ "thread grid-li grid-size-small" ]
-            [ a_
-                [ href_ thread_url
-                , onClick_ (threadSelected iface post)
-                ]
-                [ img_
-                    [ class_ "thread-image"
-                    , src_ thumb_url
-                    , title_ ( toMisoString $ show $ CatalogPost.bump_time post )
-                    ]
-                ]
-            , div_
-                [ class_ "replies" ]
-                (
-                  [ strong_ [][ text post_count_str ]
-                  , p_
-                      [ class_ "intro" ]
-                      [ span_
-                          [ class_ "subject" ]
-                          subject
-                      ]
-                  ] ++ body
-                )
+        [ class_ "thread grid-li grid-size-small" ]
+        [ a_
+            [ href_ thread_url
+            , onClick_ (threadSelected iface post)
             ]
+            [ img_
+                [ class_ "thread-image"
+                , src_ thumb_url
+                , title_ ( toMisoString $ show $ CatalogPost.bump_time post )
+                ]
+            ]
+        , div_
+            [ class_ "replies" ]
+            (
+              [ div_
+                  [ class_ "meta" ]
+                  [ "R: "
+                  , b_ [][ text post_count_str ]
+                  , "+"
+                  ]
+              , p_
+                  [ class_ "intro" ]
+                  [ span_
+                      [ class_ "subject" ]
+                      subject
+                  ]
+              ] ++ body
+            )
         ]
 
   where
@@ -108,7 +110,7 @@ gridItem iface m post =
     body = map (rawHtml . toMisoString) $ maybeToList $ CatalogPost.body post
 
     post_count_str :: MisoString
-    post_count_str = "R: " `append` (toMisoString $ (CatalogPost.estimated_post_count post) - 1) `append` "+"
+    post_count_str = toMisoString $ (CatalogPost.estimated_post_count post) - 1
 
     thumb_url :: MisoString
     thumb_url  =

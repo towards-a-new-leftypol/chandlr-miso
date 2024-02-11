@@ -851,9 +851,8 @@ pre {
   float: none!important;
   margin: auto;
   max-height: 150px;
-  max-width: 200px;
+  max-width: 150px;
   box-shadow: 0 0 4px rgba(0,0,0,0.55);
-  border: 2px solid rgba(153,153,153,0);
 }
 
 .theme-catalog div.thread {
@@ -861,18 +860,17 @@ pre {
   vertical-align: top;
   text-align: center;
   font-weight: normal;
-  margin-top: 2px;
-  margin-bottom: 2px;
-  padding: 2px;
-  height: 300px;
-  width: 205px;
+  max-height: 300px;
+  width: 180px;
   overflow: hidden;
   position: relative;
-  font-size: 11px;
-  max-height: 300px;
-  background: rgba(182, 182, 182, 0.12);
-  border: 2px solid rgba(111, 111, 111, 0.34);
-  max-height:300px;
+  font-size: 10pt;
+  margin-top: 5px;
+  margin-bottom: 20px;
+}
+
+.theme-catalog .thread .meta {
+    font-size: 11px;
 }
 
 .theme-catalog div.thread strong {
@@ -889,23 +887,33 @@ pre {
 }
 
 .theme-catalog div.grid-size-vsmall img {
-  max-height: 33%;
-  max-width: 95%
+  max-height: 80px;
+  max-width: 80px;
 }
 
 .theme-catalog div.grid-size-vsmall {
-  min-width:90px; max-width: 90px;
+  min-width: 90px;
+  max-width: 90px;
   max-height: 148px;
+  font-size: 11px;
+  margin-bottom: 10px;
 }
 
 .theme-catalog div.grid-size-small img {
-  max-height: 33%;
-  max-width: 95%
+  min-width: 50px;
+  min-height: 50px;
+  max-width: 150px;
+  max-width: 150px;
 }
 
+.theme-catalog .thread.grid-size-small .replies {
+    max-width: 150px;
+    padding: 0 15px;
+}
+
+
 .theme-catalog div.grid-size-small {
-  min-width:140px; max-width: 140px;
-  max-height: 192px;
+    width: 180px;
 }
 
 .theme-catalog div.grid-size-medium img {
