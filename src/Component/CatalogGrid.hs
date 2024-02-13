@@ -92,19 +92,22 @@ gridItem iface m post =
                   , b_ [][ text post_count_str ]
                   , "+"
                   ]
-              , p_
-                  [ class_ "intro" ]
-                  [ span_
-                      [ class_ "subject" ]
-                      subject
-                  ]
-              ] ++ body
+              ] ++ (intro subject) ++ body
             )
         ]
 
   where
     subject :: [ View a ]
     subject = map (text . toMisoString) $ maybeToList $ CatalogPost.subject post
+
+    intro :: [ View a ] -> [ View a ]
+    intro [] = []
+    intro x = (: []) $ p_
+        [ class_ "intro" ]
+        [ span_
+            [ class_ "subject" ]
+            x
+        ]
 
     body :: [ View a ]
     body = map (rawHtml . toMisoString) $ maybeToList $ CatalogPost.body post
