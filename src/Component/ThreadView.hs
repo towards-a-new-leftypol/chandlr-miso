@@ -18,7 +18,6 @@ import Miso
   , noEff
   , class_
   , id_
-  , textProp
   , h2_
   , Attribute
   , (<#)
@@ -107,7 +106,7 @@ op m op_post =
     , div_
         (
             [ class_ "post op"
-            , id_ "op_477700"
+            , id_ $ toMisoString $ show $ Post.board_post_id op_post
             ] ++ multi op_post
         )
         [ intro op_post
@@ -132,8 +131,7 @@ multi post
 reply :: Model -> PostWithBody -> View a
 reply m (post, parts) = div_
     [ class_ "postcontainer"
-    , id_ "pc477702"
-    , textProp "data-board" "leftypol"
+    , id_ $ toMisoString $ show $ Post.board_post_id post
     ]
     [ div_
         [ class_ "sidearrows" ]

@@ -23,13 +23,17 @@ import qualified GHCJS.DOM.JSFFI.Generated.NodeList as NodeList
 import GHCJS.DOM.JSFFI.Generated.DOMTokenList (contains)
 import Data.Text (Text)
 import Miso (consoleLog)
+import Miso.String (fromMisoString)
+import Text.Parsec (ParseError)
+
+import QuoteLinkParser
 
 
 data PostPart
     = SimpleText JSString
     | PostedUrl JSString
     | Skip
-    | Quote JSString
+    | Quote (Either ParseError ParsedURL)
         -- Quotes don't seem to be able to be spoilered
         -- board links (which appear as quotes but start with >>>) break the tag
     | GreenText     [ PostPart ]
@@ -109,7 +113,7 @@ parseAnchor element = do
 
       case target of
         Just ("_blank" :: JSString) -> return $ PostedUrl href
-        _ -> return $ Quote href
+        _ -> return $ Quote $ parseURL $ fromMisoString href
 
 
 parseSpan :: Element -> IO PostPart

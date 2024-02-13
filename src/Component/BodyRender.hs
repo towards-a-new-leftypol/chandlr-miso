@@ -16,16 +16,19 @@ import Miso
     , u_
     , em_
     , s_
-    , title_
     )
 
-import Miso.String (toMisoString, fromMisoString)
+import Miso.String (toMisoString)
+import System.FilePath ((</>))
 import Text.Parsec (ParseError)
+import GHCJS.DOM.Types (JSString)
+import Data.Maybe (fromJust)
+
 import BodyParser (PostPart (..))
 import QuoteLinkParser
 import qualified Component.Thread.Model as Model
 import qualified Network.SiteType as Site
-import qualified Network.ThreadType as Thread
+import qualified Network.BoardType as Board
 
 {-
  - This is the inverse of parsePostBody from BodyParser except
@@ -51,21 +54,60 @@ renderPostPart _ (PostedUrl u) =
 
 renderPostPart _ Skip = br_ []
 
-renderPostPart m (Quote url) = elems parse_result
+renderPostPart m (Quote parse_result) = elems parse_result
     where
-        parse_result = parseURL $ fromMisoString url
-
         elems :: Either ParseError ParsedURL -> View a
         elems (Left err) =
             a_
-                [ href_ url
-                , title_ $ toMisoString $ show err
-                ]
-                [ text url ]
-        elems (Right ParsedURL {..}) =
-            a_
-                [ href_ url ]
-                [ text url ]
+                []
+                [ text $ toMisoString $ show err ]
+        elems (Right p) =
+            case full_url p of
+                Nothing ->
+                    a_
+                        [ href_ $ "/" <> site_name <> "/" <> linked_board <> "/" ]
+                        [ text $ ">>>/" <> linked_board <> "/" ]
+
+                Just u ->
+                    if current_board /= linked_board
+                    then
+                        a_
+                            [ href_ u ]
+                            [ text $ ">>>/" <> linked_board <> "/" <> post_id ]
+                    else
+                        a_
+                            [ href_ u ]
+                            [ text $ ">>" <> post_id ]
+
+            where
+                linked_board = toMisoString $ boardName p
+
+                post_id = toMisoString $ show $ fromJust $ postId p
+
+                current_board = toMisoString $ Board.pathpart $ head $ Site.boards (Model.site m)
+
+
+        full_url :: ParsedURL -> Maybe JSString
+        full_url ParsedURL {..} = do
+            tid <- threadId
+            pid <- postId
+
+            return $ "/" <> site_name <> "/" <> (toMisoString $ boardName </> show tid ++ "#" ++ show pid)
+
+        site_name = toMisoString $ Site.name $ Model.site m
+
+        -- cases of urls:
+        -- url:
+        -- /b/res/1.html#2
+        -- if on different board:
+        -- >>/b/2
+        -- if on same board or same thread:
+        -- >>2
+        --
+        -- url:
+        -- /b/index.html
+        -- if only board:
+        -- >>>/b/
 
 renderPostPart m (GreenText parts) =
     span_ [ class_ "quote" ] (render m parts)
