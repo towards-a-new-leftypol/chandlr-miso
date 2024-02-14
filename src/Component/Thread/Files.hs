@@ -72,7 +72,7 @@ file media_root site multifile a = div_
       , text " "
       , span_
           [ class_ "details" ]
-          [ text $ "(" `append` size `append` ", 1280x720, "
+          [ text $ "(" `append` size `append` res_str
           , a_
               [ download_ orig_file_name
               , href_ file_url
@@ -102,6 +102,13 @@ file media_root site multifile a = div_
     size :: JSString
     size = toMisoString $
       bytesToHumanReadable (Attachment.file_size_bytes a) True
+
+    res_str :: JSString
+    res_str = maybe "" show_dimension $ Attachment.resolution a
+
+    show_dimension :: Attachment.Dimension -> JSString
+    show_dimension Attachment.Dimension {..} = toMisoString $
+        ", " ++ show width ++ "x" ++ show height ++ ", "
 
     filename_text :: JSString
     filename_text
