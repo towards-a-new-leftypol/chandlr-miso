@@ -47,21 +47,16 @@ intro site board thread post current_time = span_
     , " "
     , time_
         [ textProp "datetime" $ toMisoString $ show $ creation_time
-        , textProp "data-local" "true"
         , title_ $ toMisoString $ timeAgo current_time creation_time
         ][ text $ formatUTC creation_time ]
     , " "
     , a_
         [ class_ "post_no"
-        -- , href_ $ toMisoString $ "#" ++ b_post_id
         , href_ $ toMisoString $ post_url <> "#" <> b_post_id
-        --, href_ "/leftypol/res/477700.html#477700"
         ][ "No." ]
     , a_
         [ class_ "post_no"
-        -- , href_ $ toMisoString $ "#q" ++ b_post_id
         , href_ $ toMisoString $ post_url <> "#q" <> b_post_id
-        --, href_ "/leftypol/res/477700.html#q477700"
         ][ text $ toMisoString $ b_post_id ]
     ]
   )
