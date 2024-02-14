@@ -27,6 +27,8 @@ import Miso
 import Data.Text (Text)
 import Miso.String (toMisoString)
 import GHCJS.DOM.Types (JSString)
+import Data.Time.Clock (UTCTime (..), secondsToDiffTime, getCurrentTime)
+import Data.Time.Calendar (Day (..))
 
 import Network.SiteType (Site)
 import qualified Network.SiteType as Site
@@ -45,11 +47,12 @@ initialModel mroot s = Model
     { site = s
     , post_bodies = []
     , media_root = mroot
+    , current_time = UTCTime (ModifiedJulianDay 0) (secondsToDiffTime 0)
     }
 
 data Action
     = RenderSite Site
-    | UpdatePostBodies [ PostWithBody ]
+    | UpdatePostBodies UTCTime [ PostWithBody ]
 
 data Interface a = Interface { passAction :: Action -> a }
 
@@ -59,7 +62,9 @@ update iface (RenderSite s) m = m { site = s } <# do
 
     mapM_ (consoleLog . toMisoString . show) bodies
 
-    return $ passAction iface $ UpdatePostBodies $ zip posts bodies
+    now <- getCurrentTime
+
+    return $ passAction iface $ UpdatePostBodies now $ zip posts bodies
 
     where
         getBody :: Maybe Text -> IO [ PostPart ]
@@ -70,7 +75,7 @@ update iface (RenderSite s) m = m { site = s } <# do
         posts = Thread.posts $ head $ Board.threads $ head $ Site.boards s
 --update (RenderSite s) m = noEff (m { site = s })
 
-update _ (UpdatePostBodies pwbs) m = noEff m { post_bodies = pwbs }
+update _ (UpdatePostBodies t pwbs) m = noEff m { post_bodies = pwbs, current_time = t }
 
 
 view :: Model -> View a
@@ -113,7 +118,7 @@ op m op_post =
             , id_ $ toMisoString $ show $ Post.board_post_id op_post
             ] ++ multi op_post
         )
-        [ intro op_post
+        [ intro op_post $ current_time m
         , div_
             [ class_ "body" ]
             (body $ post_bodies m)
@@ -145,7 +150,7 @@ reply m (post, parts) = div_
             [ class_ "post reply"
             ] ++ multi post
         )
-        [ intro post
+        [ intro post $ current_time m
         , files (media_root m) (site m) post
         , div_
             [ class_ "body" ]

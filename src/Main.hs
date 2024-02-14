@@ -183,7 +183,7 @@ mainUpdate (HaveThread (Client.HttpResponse {..})) m = new_model <# do
     where
         new_model = m
             { thread_model =
-                body >>= Just . (Thread.initialModel (media_root_ m)) . head
+                body >>= Just . (Thread.initialModel $ media_root_ m) . head
             }
 
 mainUpdate GetLatest m = m <# Client.fetchLatest (client_model m) (iClient HaveLatest)

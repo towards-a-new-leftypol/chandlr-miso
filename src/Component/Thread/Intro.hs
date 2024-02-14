@@ -18,18 +18,19 @@ import Miso
 import GHCJS.DOM.Types (JSString)
 import Data.Foldable (toList)
 import Miso.String (toMisoString)
-import Data.Time.Clock (UTCTime)
+import Data.Time.Clock (UTCTime, diffUTCTime)
 import Data.Time.Format (formatTime, defaultTimeLocale)
 
 import Network.PostType (Post)
 import qualified Network.PostType as Post
 
+
 formatUTC :: UTCTime -> JSString
 formatUTC time = toMisoString $
     formatTime defaultTimeLocale "%Y-%m-%d (%a) %T" time
 
-intro :: Post -> View a
-intro post = span_
+intro :: Post -> UTCTime -> View a
+intro post current_time = span_
   [ class_ "intro" ]
   ( subject ++
     [ " "
@@ -40,7 +41,7 @@ intro post = span_
     , time_
         [ textProp "datetime" $ toMisoString $ show $ creation_time
         , textProp "data-local" "true"
-        -- , title_ "14 days ago"
+        , title_ $ toMisoString $ timeAgo current_time creation_time
         ][ text $ formatUTC creation_time ]
     , " "
     , a_
@@ -68,3 +69,27 @@ intro post = span_
     mkSubject s = span_ 
       [ class_ "subject" ]
       [ text s ]
+
+
+-- Convert UTCTime to a human-readable string
+timeAgo :: UTCTime -> UTCTime -> String
+timeAgo currentTime pastTime =
+    let diff = realToFrac $ diffUTCTime currentTime pastTime
+    in humanReadableTimeDiff diff
+
+-- Helper function to correctly format singular and plural units
+formatTimeUnit :: (Integral a, Show a) => a -> String -> String
+formatTimeUnit value unit
+    | value == 1 = show value ++ " " ++ unit ++ " ago"
+    | otherwise  = show value ++ " " ++ unit ++ "s ago"
+
+-- Convert time difference in seconds to a human-readable format
+humanReadableTimeDiff :: Double -> String
+humanReadableTimeDiff diff
+    | diff < 60 = "Just now"
+    | diff < 3600 = formatTimeUnit (truncate (diff / 60) :: Int) "minute"
+    | diff < 86400 = formatTimeUnit (truncate (diff / 3600) :: Int) "hour"
+    | diff < 604800 = formatTimeUnit (truncate (diff / 86400) :: Int) "day"
+    | diff < 2592000 = formatTimeUnit (truncate (diff / 604800) :: Int) "week"
+    | diff < 31536000 = formatTimeUnit (truncate (diff / 2592000) :: Int) "month"
+    | otherwise = formatTimeUnit (truncate (diff / 31536000) :: Int) "year"
