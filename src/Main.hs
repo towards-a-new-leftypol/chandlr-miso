@@ -22,7 +22,6 @@ import Miso
     , div_
     , text
     , Effect
-    --, (#>)
     , (<#)
     , noEff
     , defaultEvents
@@ -33,7 +32,6 @@ import Miso
     , consoleLog
     , pushURI
     , uriSub
-    --, MisoString (..)
     )
 import GHCJS.DOM (currentDocument)
 import GHCJS.DOM.Types (toJSString, fromJSString, Element, JSString)
