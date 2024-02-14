@@ -18,9 +18,15 @@ import Miso
 import GHCJS.DOM.Types (JSString)
 import Data.Foldable (toList)
 import Miso.String (toMisoString)
+import Data.Time.Clock (UTCTime)
+import Data.Time.Format (formatTime, defaultTimeLocale)
 
 import Network.PostType (Post)
 import qualified Network.PostType as Post
+
+formatUTC :: UTCTime -> JSString
+formatUTC time = toMisoString $
+    formatTime defaultTimeLocale "%Y-%m-%d (%a) %T" time
 
 intro :: Post -> View a
 intro post = span_
@@ -32,10 +38,10 @@ intro post = span_
     -- TODO: Add flags (don't have that data in the db yet)
     , " "
     , time_
-        [ textProp "datetime" "2024-01-19T11:53:33Z"
+        [ textProp "datetime" $ toMisoString $ show $ creation_time
         , textProp "data-local" "true"
-        , title_ "14 days ago"
-        ][ "2024-01-19 (Fri) 06:53:33" ]
+        -- , title_ "14 days ago"
+        ][ text $ formatUTC creation_time ]
     , " "
     , a_
         [ class_ "post_no"
@@ -50,6 +56,8 @@ intro post = span_
   )
 
   where
+    creation_time = Post.creation_time post
+
     subject :: [ View a ]
     subject = map (mkSubject . toMisoString) $ toList $ Post.subject post
 
