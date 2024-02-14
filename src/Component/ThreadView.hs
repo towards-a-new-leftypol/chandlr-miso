@@ -24,7 +24,7 @@ import Miso
   , consoleLog
   )
 
-import Data.Maybe (catMaybes)
+import Data.Text (Text)
 import Miso.String (toMisoString)
 import GHCJS.DOM.Types (JSString)
 
@@ -55,13 +55,17 @@ data Interface a = Interface { passAction :: Action -> a }
 
 update :: Interface a -> Action -> Model -> Effect a Model
 update iface (RenderSite s) m = m { site = s } <# do
-    bodies <- mapM parsePostBody (catMaybes $ map Post.body posts)
+    bodies <- mapM getBody (map Post.body posts)
 
     mapM_ (consoleLog . toMisoString . show) bodies
 
     return $ passAction iface $ UpdatePostBodies $ zip posts bodies
 
     where
+        getBody :: Maybe Text -> IO [ PostPart ]
+        getBody Nothing = return []
+        getBody (Just b) = parsePostBody b
+
         posts :: [ Post ]
         posts = Thread.posts $ head $ Board.threads $ head $ Site.boards s
 --update (RenderSite s) m = noEff (m { site = s })
@@ -139,7 +143,6 @@ reply m (post, parts) = div_
     , div_
         (
             [ class_ "post reply"
-            , id_ "reply_477702"
             ] ++ multi post
         )
         [ intro post
