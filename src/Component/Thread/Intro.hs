@@ -8,13 +8,13 @@ import Miso
   , href_
   , a_
   , class_
-  , id_
   , textProp
   , title_
   , span_
   , time_
   )
 
+import Data.Text (Text, pack)
 import GHCJS.DOM.Types (JSString)
 import Data.Foldable (toList)
 import Miso.String (toMisoString)
@@ -23,14 +23,21 @@ import Data.Time.Format (formatTime, defaultTimeLocale)
 
 import Network.PostType (Post)
 import qualified Network.PostType as Post
+import Network.SiteType (Site)
+import qualified Network.SiteType as Site
+import Network.BoardType (Board)
+import qualified Network.BoardType as Board
+import qualified Network.ThreadType as Thread
+import Network.ThreadType (Thread)
 
 
 formatUTC :: UTCTime -> JSString
 formatUTC time = toMisoString $
     formatTime defaultTimeLocale "%Y-%m-%d (%a) %T" time
 
-intro :: Post -> UTCTime -> View a
-intro post current_time = span_
+
+intro :: Site -> Board -> Thread -> Post -> UTCTime -> View a
+intro site board thread post current_time = span_
   [ class_ "intro" ]
   ( subject ++
     [ " "
@@ -46,17 +53,27 @@ intro post current_time = span_
     , " "
     , a_
         [ class_ "post_no"
-        , id_ "post_no_477700"
-        , href_ "/leftypol/res/477700.html#477700"
+        -- , href_ $ toMisoString $ "#" ++ b_post_id
+        , href_ $ toMisoString $ post_url <> "#" <> b_post_id
+        --, href_ "/leftypol/res/477700.html#477700"
         ][ "No." ]
     , a_
         [ class_ "post_no"
-        , href_ "/leftypol/res/477700.html#q477700"
-        ][ text $ toMisoString $ show $ Post.board_post_id post ]
+        -- , href_ $ toMisoString $ "#q" ++ b_post_id
+        , href_ $ toMisoString $ post_url <> "#q" <> b_post_id
+        --, href_ "/leftypol/res/477700.html#q477700"
+        ][ text $ toMisoString $ b_post_id ]
     ]
   )
 
   where
+    post_url :: Text
+    post_url
+        =  "/" <> Site.name site
+        <> "/" <> Board.pathpart board
+        <> "/" <> pack (show $ Thread.board_thread_id thread)
+
+    creation_time :: UTCTime
     creation_time = Post.creation_time post
 
     subject :: [ View a ]
@@ -70,6 +87,9 @@ intro post current_time = span_
       [ class_ "subject" ]
       [ text s ]
 
+    b_post_id :: Text
+    b_post_id = pack $ show $ Post.board_post_id post
+
 
 -- Convert UTCTime to a human-readable string
 timeAgo :: UTCTime -> UTCTime -> String
@@ -77,11 +97,13 @@ timeAgo currentTime pastTime =
     let diff = realToFrac $ diffUTCTime currentTime pastTime
     in humanReadableTimeDiff diff
 
+
 -- Helper function to correctly format singular and plural units
 formatTimeUnit :: (Integral a, Show a) => a -> String -> String
 formatTimeUnit value unit
     | value == 1 = show value ++ " " ++ unit ++ " ago"
     | otherwise  = show value ++ " " ++ unit ++ "s ago"
+
 
 -- Convert time difference in seconds to a human-readable format
 humanReadableTimeDiff :: Double -> String

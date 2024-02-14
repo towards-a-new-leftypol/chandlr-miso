@@ -35,7 +35,9 @@ import qualified Network.SiteType as Site
 import Network.PostType (Post)
 import qualified Network.PostType as Post
 import qualified Network.BoardType as Board
+import Network.BoardType (Board)
 import qualified Network.ThreadType as Thread
+import Network.ThreadType (Thread)
 import Component.Thread.Files (files)
 import Component.Thread.Intro (intro)
 import Component.Thread.Model
@@ -111,14 +113,14 @@ view m =
 
 op :: Model -> Post -> [ View a ]
 op m op_post =
-    [ files (media_root m) (site m) op_post
+    [ files (media_root m) site_ op_post
     , div_
         (
             [ class_ "post op"
             , id_ $ toMisoString $ show $ Post.board_post_id op_post
             ] ++ multi op_post
         )
-        [ intro op_post $ current_time m
+        [ intro site_ board thread op_post $ current_time m
         , div_
             [ class_ "body" ]
             (body $ post_bodies m)
@@ -126,6 +128,15 @@ op m op_post =
     ]
 
     where
+        site_ :: Site
+        site_ = site m
+
+        board :: Board
+        board = head $ Site.boards site_
+
+        thread :: Thread
+        thread = head $ Board.threads board
+
         body :: [ PostWithBody ] -> [ View a ]
         body [] = []
         body x = Body.render m $ snd $ head x
@@ -150,10 +161,21 @@ reply m (post, parts) = div_
             [ class_ "post reply"
             ] ++ multi post
         )
-        [ intro post $ current_time m
-        , files (media_root m) (site m) post
+        [ intro site_ board thread post $ current_time m
+        , files (media_root m) site_ post
         , div_
             [ class_ "body" ]
             (Body.render m parts)
         ]
     ]
+
+    where
+        site_ :: Site
+        site_ = site m
+
+        board :: Board
+        board = head $ Site.boards site_
+
+        thread :: Thread
+        thread = head $ Board.threads board
+
