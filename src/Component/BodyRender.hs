@@ -16,6 +16,7 @@ import Miso
     , u_
     , em_
     , s_
+    , small_
     )
 
 import Miso.String (toMisoString)
@@ -29,6 +30,8 @@ import QuoteLinkParser
 import qualified Component.Thread.Model as Model
 import qualified Network.SiteType as Site
 import qualified Network.BoardType as Board
+import qualified Network.ThreadType as Thread
+import qualified Network.PostType as Post
 
 {-
  - This is the inverse of parsePostBody from BodyParser except
@@ -77,14 +80,23 @@ renderPostPart m (Quote parse_result) = elems parse_result
                     else
                         a_
                             [ href_ u ]
-                            [ text $ ">>" <> post_id ]
+                            $
+                            (text $ ">>" <> post_id)
+                            :
+                            if pid == op_id
+                            then [ small_ [] [ " (OP)" ] ]
+                            else []
 
             where
                 linked_board = toMisoString $ boardName p
 
-                post_id = toMisoString $ show $ fromJust $ postId p
+                pid = fromJust $ postId p
+
+                post_id = toMisoString $ show pid
 
                 current_board = toMisoString $ Board.pathpart $ head $ Site.boards (Model.site m)
+
+                op_id = Post.board_post_id $ head $ Thread.posts $ head $ Board.threads $ head $ Site.boards (Model.site m)
 
 
         full_url :: ParsedURL -> Maybe JSString

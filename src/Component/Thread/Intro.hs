@@ -14,6 +14,7 @@ import Miso
   , time_
   )
 
+import qualified Data.Map as Map
 import Data.Text (Text, pack)
 import GHCJS.DOM.Types (JSString)
 import Data.Foldable (toList)
@@ -29,6 +30,7 @@ import Network.BoardType (Board)
 import qualified Network.BoardType as Board
 import qualified Network.ThreadType as Thread
 import Network.ThreadType (Thread)
+import BodyParser (Backlinks)
 
 
 formatUTC :: UTCTime -> JSString
@@ -36,8 +38,8 @@ formatUTC time = toMisoString $
     formatTime defaultTimeLocale "%Y-%m-%d (%a) %T" time
 
 
-intro :: Site -> Board -> Thread -> Post -> UTCTime -> View a
-intro site board thread post current_time = span_
+intro :: Site -> Board -> Thread -> Post -> Backlinks -> UTCTime -> View a
+intro site board thread post backlinks current_time = span_
   [ class_ "intro" ]
   ( subject ++
     [ " "
@@ -59,6 +61,7 @@ intro site board thread post current_time = span_
         , href_ $ toMisoString $ post_url <> "#q" <> b_post_id
         ][ text $ toMisoString $ b_post_id ]
     ]
+    ++ mentions
   )
 
   where
@@ -84,6 +87,27 @@ intro site board thread post current_time = span_
 
     b_post_id :: Text
     b_post_id = pack $ show $ Post.board_post_id post
+
+    mentions :: [ View a ]
+    mentions =
+        case Map.lookup (Post.board_post_id post) backlinks of
+            Nothing -> []
+            Just [] -> []
+            Just xs -> span_
+                [ class_ "mentioned unimportant" ]
+                (map mention xs)
+                : []
+
+    mention :: Post -> View a
+    mention p =
+        a_
+            [ href_ $ "#" <> bpid
+            ]
+            [ text $ ">>" <> bpid ]
+
+        where
+            bpid :: JSString
+            bpid = toMisoString $ show $ Post.board_post_id p
 
 
 -- Convert UTCTime to a human-readable string

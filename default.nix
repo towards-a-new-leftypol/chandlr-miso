@@ -13,6 +13,7 @@ let
       pkgs.haskellPackages.cabal-install
       new_pkgs.haskellPackages.ghcjs-dom
       new_pkgs.haskellPackages.miso-from-html
+      new_pkgs.haskellPackages.hlint
     ];
   });
 

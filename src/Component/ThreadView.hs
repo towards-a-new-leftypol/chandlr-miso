@@ -89,7 +89,7 @@ view m =
         , div_
             [ class_ "thread" ]
             (  (op_post thread_posts)
-            ++ map (reply m) (drop 1 (post_bodies m))
+            ++ map (reply m backlinks) (drop 1 (post_bodies m))
             )
         ]
     )
@@ -101,9 +101,12 @@ view m =
                 concatMap (Board.threads) $
                     Site.boards (site m)
 
+        backlinks :: Backlinks
+        backlinks = collectBacklinks (post_bodies m)
+
         op_post :: [ Post ] -> [ View a ]
         op_post [] = [ h2_ [] [ "There's nothing here" ] ]
-        op_post (x:_) = op m x
+        op_post (x:_) = op m x backlinks
 
         title :: JSString
         title = toMisoString $ (Site.name $ site m) <> " /" <> board <> "/"
@@ -111,8 +114,8 @@ view m =
         board = Board.pathpart $ head $ Site.boards (site m)
 
 
-op :: Model -> Post -> [ View a ]
-op m op_post =
+op :: Model -> Post -> Backlinks -> [ View a ]
+op m op_post backlinks =
     [ files (media_root m) site_ op_post
     , div_
         (
@@ -120,7 +123,7 @@ op m op_post =
             , id_ $ toMisoString $ show $ Post.board_post_id op_post
             ] ++ multi op_post
         )
-        [ intro site_ board thread op_post $ current_time m
+        [ intro site_ board thread op_post backlinks $ current_time m
         , div_
             [ class_ "body" ]
             (body $ post_bodies m)
@@ -148,8 +151,8 @@ multi post
     | otherwise = []
 
 
-reply :: Model -> PostWithBody -> View a
-reply m (post, parts) = div_
+reply :: Model -> Backlinks -> PostWithBody -> View a
+reply m backlinks (post, parts) = div_
     [ class_ "postcontainer"
     , id_ $ toMisoString $ show $ Post.board_post_id post
     ]
@@ -161,7 +164,7 @@ reply m (post, parts) = div_
             [ class_ "post reply"
             ] ++ multi post
         )
-        [ intro site_ board thread post $ current_time m
+        [ intro site_ board thread post backlinks $ current_time m
         , files (media_root m) site_ post
         , div_
             [ class_ "body" ]

@@ -3,7 +3,7 @@ module Component.Thread.Model where
 import GHCJS.DOM.Types (JSString)
 import Network.SiteType (Site)
 import Network.PostType (Post)
-import BodyParser (PostPart)
+import PostPartType (PostPart)
 import Data.Time.Clock (UTCTime)
 
 type PostWithBody = (Post, [ PostPart ])
