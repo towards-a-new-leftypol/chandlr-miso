@@ -82,6 +82,7 @@ executable chandlr
                       BodyParser
                       QuoteLinkParser
                       PostPartType
+                      Component.TimeControl
 
 
     -- LANGUAGE extensions used by modules in this package.

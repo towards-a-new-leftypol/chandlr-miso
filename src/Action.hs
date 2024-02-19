@@ -13,6 +13,8 @@ import Network.CatalogPostType (CatalogPost)
 import Network.Http (HttpResult)
 import Network.SiteType (Site)
 import qualified Component.ThreadView as Thread
+import qualified Component.ThreadView as Thread
+import qualified Component.TimeControl as TC
 
 data GetThreadArgs = GetThreadArgs
     { website         :: Text
@@ -28,5 +30,6 @@ data Action
     | HaveThread (HttpResult [ Site ])
     | forall a. (FromJSON a) => ClientAction (HttpResult a -> Action) (C.Action a)
     | ThreadAction Thread.Action
+    | TimeAction TC.Time
     | ChangeURI URI
     | NoAction

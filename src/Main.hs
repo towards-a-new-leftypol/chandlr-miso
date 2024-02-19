@@ -46,6 +46,7 @@ import Network.CatalogPostType (CatalogPost)
 import qualified Network.CatalogPostType as CatalogPost
 import qualified Component.CatalogGrid as Grid
 import qualified Component.ThreadView as Thread
+import qualified Component.TimeControl as TC
 
 
 data Model = Model
@@ -144,6 +145,7 @@ mainView model = view
         catalog_view :: Model -> View Action
         catalog_view _ = div_ []
             [ h1_ [] [ text "Overboard Catalog" ]
+            , TC.view iTime
             , Grid.view iGrid (grid_model model)
             ]
 
@@ -203,8 +205,8 @@ mainUpdate (GetThread GetThreadArgs {..}) m = m <# do
             </> show board_thread_id
         }
 
-mainUpdate (ChangeURI old_uri) m = m { current_uri = old_uri } <# do
-    consoleLog $ "ChangeURI! " `append` (pack $ show $ old_uri)
+mainUpdate (ChangeURI uri) m = m { current_uri = uri } <# do
+    consoleLog $ "ChangeURI! " `append` (pack $ show $ uri)
     return NoAction
 
 mainUpdate (GridAction ga) m =
@@ -221,6 +223,10 @@ mainUpdate (ThreadAction ta) model = do
         Just m -> Thread.update iThread ta m >>= return . Just
 
     noEff model { thread_model = tm }
+
+mainUpdate (TimeAction ta) m =
+  TC.update iTime ta ()
+  >> noEff m
 
 
 iGrid :: Grid.Interface Action
@@ -245,6 +251,9 @@ iClient action = Client.Interface
 
 iThread :: Thread.Interface Action
 iThread = Thread.Interface { Thread.passAction = ThreadAction }
+
+iTime :: TC.Interface Action
+iTime = TC.Interface { TC.passAction = TimeAction }
 
 {-
  - TODO:
