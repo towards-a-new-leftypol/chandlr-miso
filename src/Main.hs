@@ -269,18 +269,3 @@ iTime = TC.Interface
   { TC.passAction = TimeAction
   , TC.goTo = GoToTime
   }
-
-{-
- - TODO:
- -  - Create the thread view
- -      - add routing so when you click in the catalog it goes to the thread
- -          - register onClick ✓
- -          - pevent default and consoleLog the event ✓
- -          - display page
- -          - history api / navigation for browser history ✓
- -      - create component ✓
- -
- -
- -  - make it isomorphic
- -      - move everything before or during this part into common lib
- -}

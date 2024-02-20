@@ -28,6 +28,7 @@ import Data.Time.Clock
   , getCurrentTime
   , diffUTCTime
   , addUTCTime
+  , secondsToDiffTime
   )
 import Data.Time.Calendar (fromGregorian, Day)
 
@@ -95,8 +96,8 @@ update iface (SlideChange nstr) m = m { whereAt = n } <# do
 update _ _ m = noEff m
 
 
-earliestDate :: Day
-earliestDate = fromGregorian 2020 12 1
+earliest :: UTCTime
+earliest = UTCTime (fromGregorian 2020 12 21) (secondsToDiffTime 19955)
 
 
 -- Linear interpolation function using hours
@@ -106,10 +107,8 @@ interpolateTimeHours n currentTime
   | otherwise = addUTCTime (fromIntegral hoursToAdjust * secondsInHour) currentTime
 
   where
-    targetDate = UTCTime earliestDate 0
-
     -- Calculate the total number of hours between the current time and the target date
-    totalHours = diffUTCTime currentTime targetDate / secondsInHour
+    totalHours = diffUTCTime currentTime earliest / secondsInHour
 
     -- Calculate the number of hours to adjust based on linear interpolation
     hoursToAdjust :: Integer

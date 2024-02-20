@@ -1,0 +1,19 @@
+- need to display the current time you are at (or Latest)
+- Need to add server-side rendering
+- need to implement search
+- need a control to manually put in the datetime instead of using the slider
+  for fine-grained control
+- need to change urls / history when time-travelling
+- need to be able to view board, board should support timetravel
+    - need toolbar to navigate and select which boards to view
+- need to scrape other websites and add them in
+    - i think this is more useful than the archival property, which is really
+    just there to preserve links. the time travel thing is a bit of a gimmick
+- need to have some process respond to http calls from the board to inform
+  the db of new posts
+- "infinite" scrolling  
+    - just load more!
+- need to get embeds working
+- need to support flags
+- need to support mod actions like saging a thread or deleting a post
+- fix thumbnails for older posts
