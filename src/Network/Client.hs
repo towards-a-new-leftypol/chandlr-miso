@@ -68,12 +68,10 @@ http_ m iface api_path method payload =
     >>= return . (passAction iface) . Connect
 
 
-fetchLatest :: Model -> Interface a [ CatalogPost ] -> IO a
-fetchLatest m iface = do
-    now <- getCurrentTime
-
+fetchLatest :: Model -> UTCTime -> Interface a [ CatalogPost ] -> IO a
+fetchLatest m t iface = do
     let payload = Just $ FetchCatalogArgs
-            { max_time = now
+            { max_time = t
             , max_row_read = fetchCount m
             }
 

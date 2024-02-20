@@ -11,6 +11,7 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import Network.URI (uriPath)
 import System.FilePath ((</>))
+import Data.Time.Clock (UTCTime, getCurrentTime)
 
 import Data.Aeson (FromJSON)
 import Data.JSString (pack, append)
@@ -55,6 +56,8 @@ data Model = Model
     , thread_model :: Maybe Thread.Model
     , current_uri :: URI
     , media_root_ :: JSString
+    , current_time :: UTCTime
+    , tc_model :: TC.Model
     } deriving Eq
 
 
@@ -66,7 +69,7 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
         handlers = h_latest :<|> h_thread
 
         h_latest :: Model -> Action
-        h_latest = const GetLatest
+        h_latest = const $ GoToTime $ current_time model
 
         h_thread :: Text -> Text -> BoardThreadId -> Model -> Action
         h_thread website board_pathpart board_thread_id _ = GetThread GetThreadArgs {..}
@@ -77,8 +80,9 @@ initialModel
     -> Int
     -> JSString
     -> URI
+    -> UTCTime
     -> Model
-initialModel pgroot client_fetch_count media_root u = Model
+initialModel pgroot client_fetch_count media_root u t = Model
     { grid_model = Grid.initialModel media_root
     , client_model = Client.Model
         { Client.pgApiRoot = pgroot
@@ -87,6 +91,8 @@ initialModel pgroot client_fetch_count media_root u = Model
     , thread_model = Nothing
     , current_uri = u
     , media_root_ = media_root
+    , current_time = t
+    , tc_model = TC.initialModel 0
     }
 
 getMetadata :: String -> IO (Maybe JSString)
@@ -119,7 +125,13 @@ main = do
     media_root <- getMetadata "media-root" >>=
         return . maybe "undefined" id
 
-    let initial_model = initialModel pg_api_root pg_fetch_count media_root uri
+    now <- getCurrentTime
+
+    let initial_model = initialModel
+          pg_api_root
+          pg_fetch_count
+          media_root uri
+          now
 
     startApp App
         { model         = initial_model
@@ -143,9 +155,9 @@ mainView model = view
         handlers = catalog_view :<|> thread_view
 
         catalog_view :: Model -> View Action
-        catalog_view _ = div_ []
+        catalog_view m = div_ []
             [ h1_ [] [ text "Overboard Catalog" ]
-            , TC.view iTime
+            , TC.view iTime (tc_model m)
             , Grid.view iGrid (grid_model model)
             ]
 
@@ -188,7 +200,8 @@ mainUpdate (HaveThread (Client.HttpResponse {..})) m = new_model <# do
                 body >>= Just . (Thread.initialModel $ media_root_ m) . head
             }
 
-mainUpdate GetLatest m = m <# Client.fetchLatest (client_model m) (iClient HaveLatest)
+mainUpdate (GoToTime t) m = m { current_time = t } <# do
+  Client.fetchLatest (client_model m) t (iClient HaveLatest)
 
 -- mainUpdate GetThread {..} m = noEff m
 
@@ -225,9 +238,8 @@ mainUpdate (ThreadAction ta) model = do
     noEff model { thread_model = tm }
 
 mainUpdate (TimeAction ta) m =
-  TC.update iTime ta ()
-  >> noEff m
-
+  TC.update iTime ta (tc_model m)
+  >>= \tm -> noEff m { tc_model = tm }
 
 iGrid :: Grid.Interface Action
 iGrid = Grid.Interface
@@ -253,7 +265,10 @@ iThread :: Thread.Interface Action
 iThread = Thread.Interface { Thread.passAction = ThreadAction }
 
 iTime :: TC.Interface Action
-iTime = TC.Interface { TC.passAction = TimeAction }
+iTime = TC.Interface
+  { TC.passAction = TimeAction
+  , TC.goTo = GoToTime
+  }
 
 {-
  - TODO:

@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Component.TimeControl where
 
@@ -20,13 +21,18 @@ import Miso
     , onChange
     )
 
-import Miso.String (toMisoString)
-import Data.Time.Clock (UTCTime)
+import Miso.String (toMisoString, fromMisoString)
 import GHCJS.DOM.Types (JSString)
+import Data.Time.Clock
+  ( UTCTime (..)
+  , getCurrentTime
+  , diffUTCTime
+  , addUTCTime
+  )
+import Data.Time.Calendar (fromGregorian, Day)
 
 data Time
   = Now
-  | At UTCTime
   | NoAction
   | SlideInput JSString
   | SlideChange JSString
@@ -34,10 +40,18 @@ data Time
 
 data Interface a = Interface
     { passAction :: Time -> a
+    , goTo :: UTCTime -> a
     }
 
-view :: Interface a -> View a
-view iface =
+data Model = Model
+  { whereAt :: Integer
+  } deriving Eq
+
+initialModel :: Integer -> Model
+initialModel = Model
+
+view :: Interface a -> Model -> View a
+view iface m =
     div_
         [ class_ "time-control"
         ]
@@ -47,7 +61,7 @@ view iface =
             , min_ "-500"
             , max_ "0"
             , step_ "1"
-            , value_ "0"
+            , value_ $ toMisoString $ show (whereAt m)
             , onInput $ pass SlideInput
             , onChange $ pass SlideChange
             ]
@@ -59,21 +73,47 @@ view iface =
 update
     :: Interface a
     -> Time
-    -> ()
-    -> Effect a ()
-update iface (At time) m = m <# do
-  consoleLog $ toMisoString $ show time
-
-  return $ (passAction iface) NoAction
-
+    -> Model
+    -> Effect a Model
 update iface (SlideInput time) m = m <# do
   consoleLog $ "Input: " <> time
 
   return $ (passAction iface) NoAction
 
-update iface (SlideChange time) m = m <# do
-  consoleLog $ "Change: " <> time
+update iface (SlideChange nstr) m = m { whereAt = n } <# do
+  consoleLog $ "Change: " <> nstr
 
-  return $ (passAction iface) NoAction
+  now <- getCurrentTime
+
+  return $ (goTo iface) $ interpolateTimeHours n now
+
+  where
+    n :: Integer
+    n = read $ fromMisoString nstr
+
 
 update _ _ m = noEff m
+
+
+earliestDate :: Day
+earliestDate = fromGregorian 2020 12 1
+
+
+-- Linear interpolation function using hours
+interpolateTimeHours :: Integer -> UTCTime -> UTCTime
+interpolateTimeHours n currentTime
+  | n == 0 = currentTime
+  | otherwise = addUTCTime (fromIntegral hoursToAdjust * secondsInHour) currentTime
+
+  where
+    targetDate = UTCTime earliestDate 0
+
+    -- Calculate the total number of hours between the current time and the target date
+    totalHours = diffUTCTime currentTime targetDate / secondsInHour
+
+    -- Calculate the number of hours to adjust based on linear interpolation
+    hoursToAdjust :: Integer
+    hoursToAdjust = round $ totalHours * (fromIntegral n / 500.0)
+
+    -- One hour in seconds
+    secondsInHour = 3600
