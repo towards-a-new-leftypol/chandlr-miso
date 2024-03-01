@@ -30,7 +30,7 @@ import Data.Time.Clock
   , addUTCTime
   , secondsToDiffTime
   )
-import Data.Time.Calendar (fromGregorian, Day)
+import Data.Time.Calendar (fromGregorian)
 
 data Time
   = Now
@@ -76,8 +76,8 @@ update
     -> Time
     -> Model
     -> Effect a Model
-update iface (SlideInput time) m = m <# do
-  consoleLog $ "Input: " <> time
+update iface (SlideInput nstr) m = m <# do
+  consoleLog $ "Input: " <> nstr
 
   return $ (passAction iface) NoAction
 
@@ -86,24 +86,27 @@ update iface (SlideChange nstr) m = m { whereAt = n } <# do
 
   now <- getCurrentTime
 
-  return $ (goTo iface) $ interpolateTimeHours n now
+  let newTime = interpolateTimeHours n now
+
+  return $ (goTo iface) newTime
 
   where
     n :: Integer
     n = read $ fromMisoString nstr
 
-
 update _ _ m = noEff m
 
 
 earliest :: UTCTime
-earliest = UTCTime (fromGregorian 2020 12 21) (secondsToDiffTime 19955)
+--earliest = UTCTime (fromGregorian 2020 12 20) (secondsToDiffTime 82643)
+earliest = UTCTime (fromGregorian 2020 12 20) (secondsToDiffTime 82644)
 
 
 -- Linear interpolation function using hours
 interpolateTimeHours :: Integer -> UTCTime -> UTCTime
 interpolateTimeHours n currentTime
   | n == 0 = currentTime
+  | n == -500 = earliest
   | otherwise = addUTCTime (fromIntegral hoursToAdjust * secondsInHour) currentTime
 
   where

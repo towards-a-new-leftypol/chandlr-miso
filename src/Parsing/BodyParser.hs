@@ -4,7 +4,7 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module BodyParser
+module Parsing.BodyParser
     ( PostPart (..)
     , parsePostBody
     , collectBacklinks
@@ -32,8 +32,8 @@ import Miso.String (fromMisoString)
 import qualified Network.PostType as Post
 import Component.Thread.Model (PostWithBody)
 
-import PostPartType
-import QuoteLinkParser
+import Parsing.PostPartType
+import Parsing.QuoteLinkParser
 
 
 nodeListToList :: NodeList -> IO [ Node ]

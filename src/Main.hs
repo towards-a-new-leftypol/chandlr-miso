@@ -33,6 +33,8 @@ import Miso
     , consoleLog
     , pushURI
     , uriSub
+    , time_
+    , class_
     )
 import GHCJS.DOM (currentDocument)
 import GHCJS.DOM.Types (toJSString, fromJSString, Element, JSString)
@@ -156,7 +158,11 @@ mainView model = view
 
         catalog_view :: Model -> View Action
         catalog_view m = div_ []
-            [ h1_ [] [ text "Overboard Catalog" ]
+            [ div_
+                [ class_ "page_heading" ]
+                [ h1_ [] [ text "Overboard Catalog" ]
+                , time_ [] [ text $ pack $ show $ current_time model ]
+                ]
             , TC.view iTime (tc_model m)
             , Grid.view iGrid (grid_model model)
             ]

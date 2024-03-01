@@ -25,6 +25,7 @@ import Miso.String (toMisoString, MisoString)
 
 import Network.CatalogPostType (CatalogPost)
 import qualified Network.CatalogPostType as CatalogPost
+import Parsing.EmbedParser (extractVideoId)
 
 data Model = Model
   { display_items :: [ CatalogPost ]
@@ -115,12 +116,19 @@ gridItem iface m post =
     post_count_str :: MisoString
     post_count_str = toMisoString $ (CatalogPost.estimated_post_count post) - 1
 
+    embed_url :: Maybe String
+    embed_url =
+        (CatalogPost.embed post) >>= Just . (\(Right r) -> r) . extractVideoId . T.unpack
+
     thumb_url :: MisoString
     thumb_url  =
-        case mthumb_path of
-            -- TODO: what about embeds!?
-            Nothing -> "/static/default_thumbnail.png"
-            Just thumb_path -> (media_root m) `append` (toMisoString thumb_path)
+        case embed_url of
+            Nothing ->
+                case mthumb_path of
+                    -- TODO: what about embeds!?
+                    Nothing -> "/static/default_thumbnail.png"
+                    Just thumb_path -> (media_root m) `append` (toMisoString thumb_path)
+            Just u -> "https://leftychan.net/vi/" <> toMisoString u <> "/0.jpg"
 
     mthumb_path :: Maybe Text
     mthumb_path = do

@@ -30,7 +30,7 @@ import Network.BoardType (Board)
 import qualified Network.BoardType as Board
 import qualified Network.ThreadType as Thread
 import Network.ThreadType (Thread)
-import BodyParser (Backlinks)
+import Parsing.BodyParser (Backlinks)
 
 
 formatUTC :: UTCTime -> JSString

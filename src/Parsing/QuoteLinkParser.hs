@@ -1,4 +1,4 @@
-module QuoteLinkParser
+module Parsing.QuoteLinkParser
     ( parseURL
     , ParsedURL (..)
     )

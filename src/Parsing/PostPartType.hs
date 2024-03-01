@@ -1,9 +1,9 @@
-module PostPartType where
+module Parsing.PostPartType where
 
 import GHCJS.DOM.Types (JSString)
 import Text.Parsec (ParseError)
 
-import QuoteLinkParser (ParsedURL)
+import Parsing.QuoteLinkParser (ParsedURL)
 
 data PostPart
     = SimpleText JSString

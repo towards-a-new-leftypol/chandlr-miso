@@ -25,8 +25,8 @@ import Text.Parsec (ParseError)
 import GHCJS.DOM.Types (JSString)
 import Data.Maybe (fromJust)
 
-import BodyParser (PostPart (..))
-import QuoteLinkParser
+import Parsing.BodyParser (PostPart (..))
+import Parsing.QuoteLinkParser
 import qualified Component.Thread.Model as Model
 import qualified Network.SiteType as Site
 import qualified Network.BoardType as Board

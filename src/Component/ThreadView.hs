@@ -40,8 +40,9 @@ import qualified Network.ThreadType as Thread
 import Network.ThreadType (Thread)
 import Component.Thread.Files (files)
 import Component.Thread.Intro (intro)
+import Component.Thread.Embed (embed)
 import Component.Thread.Model
-import BodyParser
+import Parsing.BodyParser
 import qualified Component.BodyRender as Body
 
 initialModel :: JSString -> Site -> Model
@@ -116,7 +117,7 @@ view m =
 
 op :: Model -> Post -> Backlinks -> [ View a ]
 op m op_post backlinks =
-    [ files (media_root m) site_ op_post
+    [ files_or_embed_view
     , div_
         (
             [ class_ "post op"
@@ -131,6 +132,13 @@ op m op_post backlinks =
     ]
 
     where
+        files_or_embed_view :: View a
+        files_or_embed_view =
+          case (Post.embed op_post) of
+            Just _ -> embed op_post
+            Nothing -> files (media_root m) site_ op_post
+        
+
         site_ :: Site
         site_ = site m
 
@@ -165,7 +173,7 @@ reply m backlinks (post, parts) = div_
             ] ++ multi post
         )
         [ intro site_ board thread post backlinks $ current_time m
-        , files (media_root m) site_ post
+        , files_or_embed_view
         , div_
             [ class_ "body" ]
             (Body.render m parts)
@@ -173,6 +181,12 @@ reply m backlinks (post, parts) = div_
     ]
 
     where
+        files_or_embed_view :: View a
+        files_or_embed_view =
+          case (Post.embed post) of
+            Just txt -> embed post
+            Nothing -> files (media_root m) site_ post
+
         site_ :: Site
         site_ = site m
 

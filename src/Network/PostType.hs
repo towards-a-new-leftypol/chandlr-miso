@@ -19,6 +19,7 @@ data Post = Post
   , email             :: Maybe Text
   , body_search_index :: Text
   , thread_id         :: Integer
+  , embed             :: Maybe Text
   , attachments       :: [ Attachment ]
   } deriving (Show, Generic, FromJSON, ToJSON, Eq)
 

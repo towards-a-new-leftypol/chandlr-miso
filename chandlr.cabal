@@ -79,9 +79,10 @@ executable chandlr
                       Component.BodyRender
                       Routes
                       Common.AttachmentType
-                      BodyParser
-                      QuoteLinkParser
-                      PostPartType
+                      Parsing.BodyParser
+                      Parsing.QuoteLinkParser
+                      Parsing.EmbedParser
+                      Parsing.PostPartType
                       Component.TimeControl
 
 
