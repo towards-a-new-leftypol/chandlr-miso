@@ -15,7 +15,7 @@ import Network.Http (HttpResult)
 import Network.SiteType (Site)
 import qualified Component.ThreadView as Thread
 import qualified Component.TimeControl as TC
-import qualified Component.Search as Search
+import qualified Component.Search.SearchTypes as Search
 
 data GetThreadArgs = GetThreadArgs
     { website         :: Text

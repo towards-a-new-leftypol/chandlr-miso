@@ -26,27 +26,10 @@ import Miso
   , consoleLog
   , noEff
   )
-import Data.JSString (JSString, pack)
-import qualified Network.ClientTypes as Client
-import Network.CatalogPostType (CatalogPost)
+import Data.JSString (pack)
+import qualified Network.Client as Client
 import Network.Http (HttpResult (..))
-
-data Action
-  = SearchChange JSString
-  | OnSubmit
-  | SearchResult (HttpResult [ CatalogPost ])
-  | NoAction
-
-data Model = Model
-  { searchTerm :: JSString
-  , clientModel :: Client.Model
-  } deriving Eq
-
-data Interface a = Interface
-  { passAction :: Action -> a
-  , clientIface :: Client.Interface a [ CatalogPost ]
-  }
-
+import Component.Search.SearchTypes
 
 update :: Interface a -> Action -> Model -> Effect a Model
 update iface (SearchChange q) model = model { searchTerm = q } <# do
@@ -54,8 +37,8 @@ update iface (SearchChange q) model = model { searchTerm = q } <# do
   return $ (passAction iface) NoAction
 
 update iface OnSubmit model = model <# do
-  consoleLog $ "Submit!" <> searchTerm model
-  return $ (passAction iface) NoAction
+  consoleLog $ "Submit! " <> searchTerm model
+  Client.search (clientModel model) (searchTerm model) (clientIface iface)
 
 update iface (SearchResult result) model = model <# do
   consoleLog $ "Search result"
