@@ -20,3 +20,5 @@
 - need to support flags
 - need to support mod actions like saging a thread or deleting a post
 - need to display the current time you are at (or Latest) ✓
+- add server sent event (only when in the "present" time wise) and listen
+  for new posts

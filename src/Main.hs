@@ -50,6 +50,7 @@ import qualified Network.CatalogPostType as CatalogPost
 import qualified Component.CatalogGrid as Grid
 import qualified Component.ThreadView as Thread
 import qualified Component.TimeControl as TC
+import qualified Component.Search as Search
 
 
 data Model = Model
@@ -60,6 +61,7 @@ data Model = Model
     , media_root_ :: JSString
     , current_time :: UTCTime
     , tc_model :: TC.Model
+    , search_model :: Search.Model
     } deriving Eq
 
 
@@ -95,6 +97,7 @@ initialModel pgroot client_fetch_count media_root u t = Model
     , media_root_ = media_root
     , current_time = t
     , tc_model = TC.initialModel 0
+    , search_model = Search.Model { Search.search_term = "" }
     }
 
 getMetadata :: String -> IO (Maybe JSString)
@@ -164,6 +167,7 @@ mainView model = view
                 , time_ [] [ text $ pack $ show $ current_time model ]
                 ]
             , TC.view iTime (tc_model m)
+            , Search.view iSearch
             , Grid.view iGrid (grid_model model)
             ]
 
@@ -247,6 +251,10 @@ mainUpdate (TimeAction ta) m =
   TC.update iTime ta (tc_model m)
   >>= \tm -> noEff m { tc_model = tm }
 
+mainUpdate (SearchAction sa) m =
+  Search.update iSearch sa (search_model m)
+  >>= \sm -> noEff m { search_model = sm }
+
 iGrid :: Grid.Interface Action
 iGrid = Grid.Interface
     { Grid.passAction = GridAction
@@ -275,3 +283,6 @@ iTime = TC.Interface
   { TC.passAction = TimeAction
   , TC.goTo = GoToTime
   }
+
+iSearch :: Search.Interface Action
+iSearch = Search.Interface { passAction = SearchAction }

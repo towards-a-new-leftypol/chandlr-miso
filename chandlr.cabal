@@ -76,6 +76,7 @@ executable chandlr
                       Component.Thread.Files
                       Component.Thread.Intro
                       Component.Thread.Model
+                      Component.Thread.Embed
                       Component.BodyRender
                       Routes
                       Common.AttachmentType
@@ -84,6 +85,7 @@ executable chandlr
                       Parsing.EmbedParser
                       Parsing.PostPartType
                       Component.TimeControl
+                      Component.Search
 
 
     -- LANGUAGE extensions used by modules in this package.

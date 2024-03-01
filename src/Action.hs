@@ -15,6 +15,7 @@ import Network.Http (HttpResult)
 import Network.SiteType (Site)
 import qualified Component.ThreadView as Thread
 import qualified Component.TimeControl as TC
+import qualified Component.Search as Search
 
 data GetThreadArgs = GetThreadArgs
     { website         :: Text
@@ -30,6 +31,7 @@ data Action
     | forall a. (FromJSON a) => ClientAction (HttpResult a -> Action) (C.Action a)
     | ThreadAction Thread.Action
     | TimeAction TC.Time
+    | SearchAction Search.Action
     | GoToTime UTCTime
     | ChangeURI URI
     | NoAction

@@ -184,7 +184,7 @@ reply m backlinks (post, parts) = div_
         files_or_embed_view :: View a
         files_or_embed_view =
           case (Post.embed post) of
-            Just txt -> embed post
+            Just _ -> embed post
             Nothing -> files (media_root m) site_ post
 
         site_ :: Site
