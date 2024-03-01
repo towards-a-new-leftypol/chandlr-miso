@@ -88,17 +88,24 @@ initialModel
     -> Model
 initialModel pgroot client_fetch_count media_root u t = Model
     { grid_model = Grid.initialModel media_root
-    , client_model = Client.Model
-        { Client.pgApiRoot = pgroot
-        , Client.fetchCount = client_fetch_count
-        }
+    , client_model = client_model_
     , thread_model = Nothing
     , current_uri = u
     , media_root_ = media_root
     , current_time = t
     , tc_model = TC.initialModel 0
-    , search_model = Search.Model { Search.search_term = "" }
+    , search_model = Search.Model
+        { Search.searchTerm = ""
+        , Search.clientModel = client_model_
+        }
     }
+
+    where
+      client_model_ = Client.Model
+        { Client.pgApiRoot = pgroot
+        , Client.fetchCount = client_fetch_count
+        }
+
 
 getMetadata :: String -> IO (Maybe JSString)
 getMetadata key = do
@@ -111,6 +118,7 @@ getMetadata key = do
     case mElem of
         Nothing -> return Nothing
         Just el -> getAttribute el ("content" :: JSString)
+
 
 main :: IO ()
 main = do
@@ -285,4 +293,8 @@ iTime = TC.Interface
   }
 
 iSearch :: Search.Interface Action
-iSearch = Search.Interface { passAction = SearchAction }
+iSearch =
+  Search.Interface
+    { passAction = SearchAction
+    , clientIface = iClient (SearchAction . Search.SearchResult)
+    }

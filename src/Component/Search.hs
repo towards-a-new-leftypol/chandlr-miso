@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Component.Search
 ( view
@@ -25,26 +26,45 @@ import Miso
   , consoleLog
   , noEff
   )
-import GHCJS.DOM.Types (JSString)
+import Data.JSString (JSString, pack)
+import qualified Network.ClientTypes as Client
+import Network.CatalogPostType (CatalogPost)
+import Network.Http (HttpResult (..))
 
-data Action = SearchChange JSString | OnSubmit | NoAction
+data Action
+  = SearchChange JSString
+  | OnSubmit
+  | SearchResult (HttpResult [ CatalogPost ])
+  | NoAction
 
 data Model = Model
-  { search_term :: JSString
+  { searchTerm :: JSString
+  , clientModel :: Client.Model
   } deriving Eq
 
 data Interface a = Interface
   { passAction :: Action -> a
+  , clientIface :: Client.Interface a [ CatalogPost ]
   }
 
 
 update :: Interface a -> Action -> Model -> Effect a Model
-update iface (SearchChange q) model = model { search_term = q } <# do
+update iface (SearchChange q) model = model { searchTerm = q } <# do
   consoleLog q
   return $ (passAction iface) NoAction
 
 update iface OnSubmit model = model <# do
-  consoleLog $ "Submit!" <> search_term model
+  consoleLog $ "Submit!" <> searchTerm model
+  return $ (passAction iface) NoAction
+
+update iface (SearchResult result) model = model <# do
+  consoleLog $ "Search result"
+  case result of
+    Error -> consoleLog $ "Error!"
+    HttpResponse {..} -> do
+      consoleLog $ (pack $ show $ status_code) <> " " <> (pack $ status_text)
+      consoleLog $ (pack $ show $ body)
+
   return $ (passAction iface) NoAction
 
 update _ NoAction m = noEff m

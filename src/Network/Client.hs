@@ -14,6 +14,7 @@ module Network.Client
     , getThread
     , Model (..)
     , update
+    , search
     ) where
 
 import GHC.Generics
@@ -21,7 +22,6 @@ import Control.Monad (void)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
 import Data.Aeson (ToJSON, FromJSON)
-import Data.Time (getCurrentTime)
 import Data.Time.Clock (UTCTime)
 
 import GHCJS.DOM.Types (JSString)
@@ -49,6 +49,10 @@ data FetchCatalogArgs = FetchCatalogArgs
   { max_time :: UTCTime
   , max_row_read :: Int
   } deriving (Generic, ToJSON)
+
+
+data SearchPostsArgs = SearchPostsArgs { search_text :: JSString }
+    deriving (Generic, ToJSON)
 
 
 http_
@@ -89,3 +93,14 @@ getThread m iface A.GetThreadArgs {..} =
             <> "&boards.pathpart=eq." <> toMisoString board_pathpart
             <> "&boards.threads.board_thread_id=eq." <> toMisoString (show board_thread_id)
             <> "&boards.threads.posts.order=board_post_id.asc"
+
+
+search :: Model -> JSString -> Interface a [ CatalogPost ] -> IO a
+search m query iface =
+    http_ m iface "/rpc/search_posts" Http.POST payload
+
+    where
+        payload = Just $ SearchPostsArgs
+            { search_text = query
+            }
+

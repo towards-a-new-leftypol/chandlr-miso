@@ -73,11 +73,13 @@ mkResult xhr = do
                     Left err -> do
                       consoleLog $ toJSString $ show err
                       return Error
-                    Right x -> return HttpResponse
-                        { status_code = status_code_int
-                        , status_text = st
-                        , body = Just x
-                        }
+                    Right x -> do
+                        consoleLog $ toJSString "Decoding Successful"
+                        return HttpResponse
+                            { status_code = status_code_int
+                            , status_text = st
+                            , body = Just x
+                            }
 
 
 http

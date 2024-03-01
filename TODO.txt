@@ -1,7 +1,7 @@
-- get embeds working
+- get embeds working ✓
 - need to implement search
 - change urls / history when time-travelling
-- remove duplicate threads from view (duplicate because the OP has multiple pictures)
+- remove duplicate threads from view (duplicate because the OP has multiple pictures) ✓
 - server-side rendering
 - control to manually put in the datetime instead of using the slider
   for fine-grained control
