@@ -52,6 +52,7 @@ import qualified Component.CatalogGrid as Grid
 import qualified Component.ThreadView as Thread
 import qualified Component.TimeControl as TC
 import qualified Component.Search as Search
+import qualified Component.Search.SearchTypes as Search
 
 
 data Model = Model
@@ -211,7 +212,17 @@ mainView model = view
             (thread_model m)
 
         search_view :: Maybe Text -> Model -> View Action
-        search_view _ _ = div_ [] [ text "Search results" ]
+        search_view _ m = div_ []
+            [ div_
+                [ class_ "page_heading" ]
+                [ h1_ [] [ text "Search" ]
+                , time_ [] [ text $ Search.searchTerm $ search_model m ]
+                ]
+            , Search.view iSearch (search_model m)
+            , Grid.view iGrid $ (grid_model model)
+                    { Grid.display_items = (Search.displayResults (search_model m))
+                    }
+            ]
 
         page404 :: View Action
         page404 = h1_ [] [ text "404 Not Found" ]

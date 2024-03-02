@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Component.CatalogGrid
-( Model
+( Model (..)
 , initialModel
 , Action (..)
 , Interface (..)
