@@ -9,12 +9,12 @@ import Data.Proxy
 import Data.Maybe (maybe, fromJust)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Network.URI (uriPath)
+import Network.URI (uriPath, uriQuery, escapeURIString, isAllowedInURI)
 import System.FilePath ((</>))
 import Data.Time.Clock (UTCTime, getCurrentTime)
 
 import Data.Aeson (FromJSON)
-import Data.JSString (pack, append)
+import Data.JSString (pack, append, unpack)
 import Miso
     ( View
     , startApp
@@ -271,7 +271,16 @@ mainUpdate (SearchAction sa) m =
   Search.update iSearch sa (search_model m)
   >>= \sm -> noEff m { search_model = sm }
 
--- mainUpdate (SearchResults result_posts) m = -- TODO
+mainUpdate (SearchResults query) m = m { current_uri = new_current_uri } <# do
+    pushURI new_current_uri
+    return NoAction
+
+    where
+        new_current_uri :: URI
+        new_current_uri = (current_uri m)
+            { uriPath = "/search"
+            , uriQuery = "?search=" ++ (escapeURIString isAllowedInURI $ unpack query)
+            }
 
 iGrid :: Grid.Interface Action
 iGrid = Grid.Interface

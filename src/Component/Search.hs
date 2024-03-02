@@ -58,7 +58,7 @@ update iface (SearchResult result) model = model <# do
                 Nothing -> return $ passAction iface $ PassPostsToSelf []
 
 update iface (PassPostsToSelf search_results) model = model { displayResults = search_results } <#
-    return (searchResults iface)
+    (return $ (searchResults iface) (searchTerm model))
 
 update _ NoAction m = noEff m
 

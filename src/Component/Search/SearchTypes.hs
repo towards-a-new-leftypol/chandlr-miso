@@ -22,5 +22,5 @@ data Model = Model
 data Interface a = Interface
     { passAction :: Action -> a
     , clientIface :: Client.Interface a [ CatalogPost ]
-    , searchResults :: a
+    , searchResults :: JSString -> a
     }
