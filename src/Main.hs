@@ -12,6 +12,7 @@ import qualified Data.Text as T
 import Network.URI (uriPath, uriQuery, escapeURIString, unEscapeString, isAllowedInURI)
 import System.FilePath ((</>))
 import Data.Time.Clock (UTCTime, getCurrentTime)
+import Control.Concurrent.MVar (MVar, newEmptyMVar)
 
 import Data.Aeson (FromJSON)
 import Data.JSString (pack, append, unpack)
@@ -51,7 +52,6 @@ import qualified Component.CatalogGrid as Grid
 import qualified Component.ThreadView as Thread
 import qualified Component.TimeControl as TC
 import qualified Component.Search as Search
-import qualified Component.Search.SearchTypes as Search
 
 
 data Model = Model
@@ -89,10 +89,10 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
         h_thread website board_pathpart board_thread_id _ = GetThread GetThreadArgs {..}
 
         h_search :: Maybe Text -> Model -> Action
-        h_search Nothing model = GoToTime $ current_time model
-        h_search (Just search_query) model
-            | Search.searchTerm (search_model model) == unescaped_search_query = SearchResults unescaped_search_query
-            | otherwise = (Search.passAction iSearch) $ Search.OnSubmit $ toJSString $ T.unpack search_query
+        h_search Nothing m = GoToTime $ current_time m
+        h_search (Just search_query) m
+            | Search.searchTerm (search_model m) == unescaped_search_query = SearchResults unescaped_search_query
+            | otherwise = (Search.passAction iSearch) $ Search.ChangeAndSubmit unescaped_search_query
 
             where
                 unescaped_search_query = toJSString $ unEscapeString $ T.unpack search_query
@@ -104,8 +104,9 @@ initialModel
     -> JSString
     -> URI
     -> UTCTime
+    -> MVar JSString
     -> Model
-initialModel pgroot client_fetch_count media_root u t = Model
+initialModel pgroot client_fetch_count media_root u t smv = Model
     { grid_model = Grid.initialModel media_root
     , client_model = client_model_
     , thread_model = Nothing
@@ -115,6 +116,7 @@ initialModel pgroot client_fetch_count media_root u t = Model
     , tc_model = TC.initialModel 0
     , search_model = Search.Model
         { Search.searchTerm = ""
+        , Search.searchVar = smv
         , Search.clientModel = client_model_
         , Search.displayResults = []
         }
@@ -160,11 +162,14 @@ main = do
 
     now <- getCurrentTime
 
+    search_var <- newEmptyMVar
+
     let initial_model = initialModel
           pg_api_root
           pg_fetch_count
           media_root uri
           now
+          search_var
 
     startApp App
         { model         = initial_model
@@ -285,6 +290,7 @@ mainUpdate (SearchAction sa) m =
   >>= \sm -> noEff m { search_model = sm }
 
 mainUpdate (SearchResults query) m = m { current_uri = new_current_uri } <# do
+    consoleLog $ "SearchResults new uri: " <> (pack $ show new_current_uri)
     pushURI new_current_uri
     return NoAction
 
@@ -328,6 +334,6 @@ iSearch :: Search.Interface Action
 iSearch =
   Search.Interface
     { passAction = SearchAction
-    , clientIface = iClient (SearchAction . Search.SearchResult)
+    , clientIface = iClient $ SearchAction . Search.SearchResult
     , searchResults = SearchResults
     }

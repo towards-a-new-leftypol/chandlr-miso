@@ -25,21 +25,33 @@ import Miso
   , (<#)
   , consoleLog
   , noEff
-  , batchEff
   )
 import Data.JSString (pack)
 import qualified Network.Client as Client
 import Network.Http (HttpResult (..))
+import Control.Concurrent.MVar (tryTakeMVar, takeMVar, putMVar, swapMVar)
+
 import Component.Search.SearchTypes
 
 update :: Interface a -> Action -> Model -> Effect a Model
 update iface (SearchChange q) model = model { searchTerm = q } <# do
-    consoleLog q
+    consoleLog $ "SearchChange " <> q
+    m_search_query <- tryTakeMVar (searchVar model)
+
+    case m_search_query of
+        Nothing -> putMVar (searchVar model) q
+        Just _ -> swapMVar (searchVar model) q >> return ()
+
     return $ (passAction iface) NoAction
 
-update iface (OnSubmit search_query) model = model { searchTerm = search_query } <# do
+update iface OnSubmit model = model <# do
+    search_query <- takeMVar (searchVar model)
     consoleLog $ "Submit! " <> search_query
     Client.search (clientModel model) search_query (clientIface iface)
+
+update iface (ChangeAndSubmit search_query) model = model { searchTerm = search_query } <# do
+    _ <- swapMVar (searchVar model) search_query
+    return $ (passAction iface) OnSubmit
 
 update iface (SearchResult result) model = model <# do
     consoleLog $ "Received search results!"
@@ -62,12 +74,13 @@ update iface (PassPostsToSelf search_results) model = model { displayResults = s
 
 update _ NoAction m = noEff m
 
+
 view :: Interface a -> Model -> View a
 view iface m = form_
     [ class_ "search_form"
     , action_ "/search"
     , method_ "GET"
-    , onSubmit $ pass $ OnSubmit $ searchTerm m
+    , onSubmit $ pass $ OnSubmit
     ]
     [ input_
         [ type_ "submit"
