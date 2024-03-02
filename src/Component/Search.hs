@@ -25,6 +25,7 @@ import Miso
   , (<#)
   , consoleLog
   , noEff
+  , batchEff
   )
 import Data.JSString (pack)
 import qualified Network.Client as Client
@@ -53,8 +54,11 @@ update iface (SearchResult result) model = model <# do
             consoleLog $ (pack $ show $ body)
 
             case body of
-                Just b -> return $ (searchResults iface) b
-                Nothing -> return $ (searchResults iface) []
+                Just catlg_posts -> return $ passAction iface $ PassPostsToSelf catlg_posts
+                Nothing -> return $ passAction iface $ PassPostsToSelf []
+
+update iface (PassPostsToSelf search_results) model = model { displayResults = search_results } <#
+    return (searchResults iface)
 
 update _ NoAction m = noEff m
 

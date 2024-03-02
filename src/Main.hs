@@ -106,6 +106,7 @@ initialModel pgroot client_fetch_count media_root u t = Model
     , search_model = Search.Model
         { Search.searchTerm = ""
         , Search.clientModel = client_model_
+        , Search.displayResults = []
         }
     }
 

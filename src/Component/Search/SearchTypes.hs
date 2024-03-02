@@ -10,16 +10,17 @@ data Action
     = SearchChange JSString
     | OnSubmit
     | SearchResult (HttpResult [ CatalogPost ])
-    | DisplayResults [ CatalogPost ]
+    | PassPostsToSelf [ CatalogPost ] -- I think I don't understand something about the update type but I had to add this...
     | NoAction
 
 data Model = Model
     { searchTerm :: JSString
     , clientModel :: Client.Model
+    , displayResults :: [ CatalogPost ]
     } deriving Eq
 
 data Interface a = Interface
     { passAction :: Action -> a
     , clientIface :: Client.Interface a [ CatalogPost ]
-    , searchResults :: [ CatalogPost ] -> a
+    , searchResults :: a
     }
