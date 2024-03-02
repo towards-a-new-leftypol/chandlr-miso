@@ -34,4 +34,5 @@ data Action
     | SearchAction Search.Action
     | GoToTime UTCTime
     | ChangeURI URI
+    | SearchResults [ CatalogPost ]
     | NoAction

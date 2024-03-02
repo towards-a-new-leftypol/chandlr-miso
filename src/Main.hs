@@ -62,6 +62,15 @@ data Model = Model
     , current_time :: UTCTime
     , tc_model :: TC.Model
     , search_model :: Search.Model
+    {-
+     - Goal:
+     -  handle search results
+     -      - which means displaying them in a catalog
+     -      - which means having STATE that says we should be displaying
+     -      search results.
+     -          - so we need the results somewhere
+     -          - also need to change the url to show results
+     -}
     } deriving Eq
 
 
@@ -221,8 +230,6 @@ mainUpdate (HaveThread (Client.HttpResponse {..})) m = new_model <# do
 mainUpdate (GoToTime t) m = m { current_time = t } <# do
   Client.fetchLatest (client_model m) t (iClient HaveLatest)
 
--- mainUpdate GetThread {..} m = noEff m
-
 mainUpdate (GetThread GetThreadArgs {..}) m = m <# do
     consoleLog $ "Thread " `append` (pack $ show $ board_thread_id)
     pushURI new_current_uri
@@ -263,6 +270,8 @@ mainUpdate (SearchAction sa) m =
   Search.update iSearch sa (search_model m)
   >>= \sm -> noEff m { search_model = sm }
 
+-- mainUpdate (SearchResults result_posts) m = -- TODO
+
 iGrid :: Grid.Interface Action
 iGrid = Grid.Interface
     { Grid.passAction = GridAction
@@ -297,4 +306,5 @@ iSearch =
   Search.Interface
     { passAction = SearchAction
     , clientIface = iClient (SearchAction . Search.SearchResult)
+    , searchResults = SearchResults
     }

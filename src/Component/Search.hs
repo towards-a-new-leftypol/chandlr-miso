@@ -33,22 +33,28 @@ import Component.Search.SearchTypes
 
 update :: Interface a -> Action -> Model -> Effect a Model
 update iface (SearchChange q) model = model { searchTerm = q } <# do
-  consoleLog q
-  return $ (passAction iface) NoAction
+    consoleLog q
+    return $ (passAction iface) NoAction
 
 update iface OnSubmit model = model <# do
-  consoleLog $ "Submit! " <> searchTerm model
-  Client.search (clientModel model) (searchTerm model) (clientIface iface)
+    consoleLog $ "Submit! " <> searchTerm model
+    Client.search (clientModel model) (searchTerm model) (clientIface iface)
 
 update iface (SearchResult result) model = model <# do
-  consoleLog $ "Search result"
-  case result of
-    Error -> consoleLog $ "Error!"
-    HttpResponse {..} -> do
-      consoleLog $ (pack $ show $ status_code) <> " " <> (pack $ status_text)
-      consoleLog $ (pack $ show $ body)
+    consoleLog $ "Received search results!"
 
-  return $ (passAction iface) NoAction
+    case result of
+        Error -> do
+            consoleLog $ "Error!"
+            return $ (passAction iface) NoAction
+
+        HttpResponse {..} -> do
+            consoleLog $ (pack $ show $ status_code) <> " " <> (pack $ status_text)
+            consoleLog $ (pack $ show $ body)
+
+            case body of
+                Just b -> return $ (searchResults iface) b
+                Nothing -> return $ (searchResults iface) []
 
 update _ NoAction m = noEff m
 
