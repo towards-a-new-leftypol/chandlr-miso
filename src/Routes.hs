@@ -15,6 +15,7 @@ import Action
 type Route
     =    R_Latest
     :<|> R_Thread
+    :<|> R_SearchResults
 
 type R_Latest = View Action
 
@@ -24,6 +25,11 @@ type R_Thread
     =  Capture "website" Text
     :> Capture "board"   Text
     :> Capture "board_thread_id" BoardThreadId
+    :> View Action
+
+type R_SearchResults
+    = "search"
+    :> QueryParam "search" Text
     :> View Action
 
 type BoardThreadId = Int64

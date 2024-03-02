@@ -8,7 +8,7 @@ import Network.CatalogPostType (CatalogPost)
 
 data Action
     = SearchChange JSString
-    | OnSubmit
+    | OnSubmit JSString
     | SearchResult (HttpResult [ CatalogPost ])
     | PassPostsToSelf [ CatalogPost ] -- I think I don't understand something about the update type but I had to add this...
     | NoAction

@@ -37,9 +37,9 @@ update iface (SearchChange q) model = model { searchTerm = q } <# do
     consoleLog q
     return $ (passAction iface) NoAction
 
-update iface OnSubmit model = model <# do
-    consoleLog $ "Submit! " <> searchTerm model
-    Client.search (clientModel model) (searchTerm model) (clientIface iface)
+update iface (OnSubmit search_query) model = model { searchTerm = search_query } <# do
+    consoleLog $ "Submit! " <> search_query
+    Client.search (clientModel model) search_query (clientIface iface)
 
 update iface (SearchResult result) model = model <# do
     consoleLog $ "Received search results!"
@@ -62,12 +62,12 @@ update iface (PassPostsToSelf search_results) model = model { displayResults = s
 
 update _ NoAction m = noEff m
 
-view :: Interface a -> View a
-view iface = form_
+view :: Interface a -> Model -> View a
+view iface m = form_
     [ class_ "search_form"
     , action_ "/search"
     , method_ "GET"
-    , onSubmit $ pass OnSubmit
+    , onSubmit $ pass $ OnSubmit $ searchTerm m
     ]
     [ input_
         [ type_ "submit"

@@ -9,7 +9,7 @@ import Data.Proxy
 import Data.Maybe (maybe, fromJust)
 import Data.Text (Text)
 import qualified Data.Text as T
-import Network.URI (uriPath, uriQuery, escapeURIString, isAllowedInURI)
+import Network.URI (uriPath, uriQuery, escapeURIString, unEscapeString, isAllowedInURI)
 import System.FilePath ((</>))
 import Data.Time.Clock (UTCTime, getCurrentTime)
 
@@ -51,6 +51,7 @@ import qualified Component.CatalogGrid as Grid
 import qualified Component.ThreadView as Thread
 import qualified Component.TimeControl as TC
 import qualified Component.Search as Search
+import qualified Component.Search.SearchTypes as Search
 
 
 data Model = Model
@@ -79,13 +80,22 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
     where
         routing_result = runRoute (Proxy :: Proxy Route) handlers (const uri) model
 
-        handlers = h_latest :<|> h_thread
+        handlers = h_latest :<|> h_thread :<|> h_search
 
         h_latest :: Model -> Action
         h_latest = const $ GoToTime $ current_time model
 
         h_thread :: Text -> Text -> BoardThreadId -> Model -> Action
         h_thread website board_pathpart board_thread_id _ = GetThread GetThreadArgs {..}
+
+        h_search :: Maybe Text -> Model -> Action
+        h_search Nothing model = GoToTime $ current_time model
+        h_search (Just search_query) model
+            | Search.searchTerm (search_model model) == unescaped_search_query = SearchResults unescaped_search_query
+            | otherwise = (Search.passAction iSearch) $ Search.OnSubmit $ toJSString $ T.unpack search_query
+
+            where
+                unescaped_search_query = toJSString $ unEscapeString $ T.unpack search_query
 
 
 initialModel
@@ -175,7 +185,7 @@ mainView model = view
           either (const page404) id
             $ runRoute (Proxy :: Proxy Route) handlers current_uri model
 
-        handlers = catalog_view :<|> thread_view
+        handlers = catalog_view :<|> thread_view :<|> search_view
 
         catalog_view :: Model -> View Action
         catalog_view m = div_ []
@@ -185,7 +195,7 @@ mainView model = view
                 , time_ [] [ text $ pack $ show $ current_time model ]
                 ]
             , TC.view iTime (tc_model m)
-            , Search.view iSearch
+            , Search.view iSearch (search_model m)
             , Grid.view iGrid (grid_model model)
             ]
 
@@ -194,6 +204,9 @@ mainView model = view
             (h1_ [] [ text "Thread View" ])
             Thread.view
             (thread_model m)
+
+        search_view :: Maybe Text -> Model -> View Action
+        search_view _ _ = div_ [] [ text "Search results" ]
 
         page404 :: View Action
         page404 = h1_ [] [ text "404 Not Found" ]
