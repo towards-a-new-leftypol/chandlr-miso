@@ -43,8 +43,8 @@ import GHCJS.DOM.ParentNode (querySelector)
 import GHCJS.DOM.Element (getAttribute)
 import Servant.API
 
-import Action
-import Routes
+import Common.FrontEnd.Action
+import Common.FrontEnd.Routes
 import qualified Network.Client as Client
 import Network.CatalogPostType (CatalogPost)
 import qualified Network.CatalogPostType as CatalogPost
@@ -267,11 +267,12 @@ mainUpdate (GetThread GetThreadArgs {..}) m = m <# do
 
     where
         new_current_uri :: URI
-        new_current_uri = (current_uri m) {
-            uriPath = T.unpack website
-            </> T.unpack board_pathpart
-            </> show board_thread_id
-        }
+        new_current_uri = (current_uri m)
+            { uriPath = T.unpack website
+                    </> T.unpack board_pathpart
+                    </> show board_thread_id
+            , uriQuery = ""
+            }
 
 mainUpdate (ChangeURI uri) m = m { current_uri = uri } <# do
     consoleLog $ "ChangeURI! " `append` (pack $ show $ uri)

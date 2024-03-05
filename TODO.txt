@@ -1,8 +1,13 @@
 - get embeds working ✓
-- need to implement search
+- need to implement search ✓
 - change urls / history when time-travelling
 - remove duplicate threads from view (duplicate because the OP has multiple pictures) ✓
+- optimize rendering (especially for mobile)
+  - need to profile the code, perhaps profiling the views by removing certain elements (like the body of a post)
+    and measuring the rendering speed
 - server-side rendering
+    - make new servant project
+    - copy isomorphic example
 - control to manually put in the datetime instead of using the slider
   for fine-grained control
 - have some process respond to http calls from the board to inform the db of new posts
@@ -15,7 +20,6 @@
     just there to preserve links. the time travel thing is a bit of a gimmick
 - "infinite" scrolling  
     - just load more!
-- more granular actions to display what is causing slowdowns (esp on mobile)
 - fix thumbnails for older posts ✓
 - need to support flags
 - need to support mod actions like saging a thread or deleting a post

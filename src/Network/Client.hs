@@ -31,7 +31,7 @@ import Miso.String (toMisoString)
 import qualified Network.Http as Http
 import Network.CatalogPostType (CatalogPost)
 import Network.SiteType (Site)
-import qualified Action as A
+import qualified Common.FrontEnd.Action as A
 import Network.ClientTypes
 
 
@@ -51,7 +51,10 @@ data FetchCatalogArgs = FetchCatalogArgs
   } deriving (Generic, ToJSON)
 
 
-data SearchPostsArgs = SearchPostsArgs { search_text :: JSString }
+data SearchPostsArgs = SearchPostsArgs
+  { search_text :: JSString
+  , max_rows :: Int
+  }
     deriving (Generic, ToJSON)
 
 
@@ -102,5 +105,6 @@ search m query iface =
     where
         payload = Just $ SearchPostsArgs
             { search_text = query
+            , max_rows = 100
             }
 

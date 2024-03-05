@@ -20,6 +20,7 @@ import Miso
   , p_
   , Attribute
   , text
+  , target_
   )
 
 import Data.Foldable (toList)
@@ -83,6 +84,7 @@ file media_root site multifile a = div_
       ]
   , a_
       [ href_ file_url
+      , target_ "blank_"
       ]
       [ img_
           (

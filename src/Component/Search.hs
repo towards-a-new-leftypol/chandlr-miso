@@ -59,7 +59,7 @@ update iface (SearchResult result) model = model <# do
     case result of
         Error -> do
             consoleLog $ "Error!"
-            return $ (passAction iface) NoAction
+            return $ passAction iface $ PassPostsToSelf []
 
         HttpResponse {..} -> do
             consoleLog $ (pack $ show $ status_code) <> " " <> (pack $ status_text)

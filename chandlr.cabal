@@ -63,7 +63,7 @@ executable chandlr
 
     -- Modules included in this executable, other than Main.
     other-modules:    Component.CatalogGrid
-                      Action
+                      Common.FrontEnd.Action
                       Network.Http
                       Network.Client
                       Network.ClientTypes
@@ -78,7 +78,7 @@ executable chandlr
                       Component.Thread.Model
                       Component.Thread.Embed
                       Component.BodyRender
-                      Routes
+                      Common.FrontEnd.Routes
                       Common.AttachmentType
                       Parsing.BodyParser
                       Parsing.QuoteLinkParser
