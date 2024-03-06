@@ -32,7 +32,7 @@ import qualified Network.Http as Http
 import Common.Network.CatalogPostType (CatalogPost)
 import Network.SiteType (Site)
 import qualified Common.FrontEnd.Action as A
-import Network.ClientTypes
+import Common.Network.ClientTypes
 
 
 update
