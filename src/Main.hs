@@ -50,7 +50,7 @@ import Common.Network.CatalogPostType (CatalogPost)
 import qualified Common.Network.CatalogPostType as CatalogPost
 import qualified Component.CatalogGrid as Grid
 import qualified Component.ThreadView as Thread
-import qualified Component.TimeControl as TC
+import qualified Common.Component.TimeControl as TC
 import qualified Component.Search as Search
 import qualified Common.Component.Search.SearchTypes as Search
 
