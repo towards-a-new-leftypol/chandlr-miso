@@ -69,10 +69,10 @@ executable chandlr
                       Network.Client
                       Common.Network.ClientTypes
                       Common.Network.CatalogPostType
-                      Network.BoardType
-                      Network.SiteType
+                      Common.Network.BoardType
+                      Common.Network.SiteType
                       Common.Network.PostType
-                      Network.ThreadType
+                      Common.Network.ThreadType
                       Common.Component.ThreadView
                       Component.Thread.Files
                       Component.Thread.Intro

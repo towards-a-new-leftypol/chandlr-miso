@@ -28,10 +28,10 @@ import qualified Data.Text as Text
 import Miso.String (append, toMisoString)
 import qualified Data.Map as Map
 import GHCJS.DOM.Types (JSString)
-import Network.SiteType (Site)
-import qualified Network.SiteType as Site
-import qualified Network.BoardType as Board
-import qualified Network.ThreadType as Thread
+import Common.Network.SiteType (Site)
+import qualified Common.Network.SiteType as Site
+import qualified Common.Network.BoardType as Board
+import qualified Common.Network.ThreadType as Thread
 import qualified Common.Network.PostType as Post
 import Common.Network.PostType (Post)
 import Common.AttachmentType (Attachment, Dimension (..))

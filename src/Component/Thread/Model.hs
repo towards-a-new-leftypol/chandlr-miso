@@ -1,7 +1,7 @@
 module Component.Thread.Model where
 
 import GHCJS.DOM.Types (JSString)
-import Network.SiteType (Site)
+import Common.Network.SiteType (Site)
 import Common.Network.PostType (Post)
 import Parsing.PostPartType (PostPart)
 import Data.Time.Clock (UTCTime)

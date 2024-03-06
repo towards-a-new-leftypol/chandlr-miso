@@ -30,7 +30,7 @@ import Miso.String (toMisoString)
 
 import qualified Network.Http as Http
 import Common.Network.CatalogPostType (CatalogPost)
-import Network.SiteType (Site)
+import Common.Network.SiteType (Site)
 import qualified Common.FrontEnd.Action as A
 import Common.Network.ClientTypes
 

@@ -24,12 +24,12 @@ import Data.Time.Format (formatTime, defaultTimeLocale)
 
 import Common.Network.PostType (Post)
 import qualified Common.Network.PostType as Post
-import Network.SiteType (Site)
-import qualified Network.SiteType as Site
-import Network.BoardType (Board)
-import qualified Network.BoardType as Board
-import qualified Network.ThreadType as Thread
-import Network.ThreadType (Thread)
+import Common.Network.SiteType (Site)
+import qualified Common.Network.SiteType as Site
+import Common.Network.BoardType (Board)
+import qualified Common.Network.BoardType as Board
+import qualified Common.Network.ThreadType as Thread
+import Common.Network.ThreadType (Thread)
 import Parsing.BodyParser (Backlinks)
 
 
