@@ -78,7 +78,7 @@ executable chandlr
                       Component.Thread.Intro
                       Component.Thread.Model
                       Component.Thread.Embed
-                      Component.BodyRender
+                      Common.Component.BodyRender
                       Common.FrontEnd.Routes
                       Common.AttachmentType
                       Parsing.BodyParser
