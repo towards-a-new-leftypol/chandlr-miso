@@ -25,7 +25,7 @@ import Miso.String (toMisoString, MisoString)
 
 import Common.Network.CatalogPostType (CatalogPost)
 import qualified Common.Network.CatalogPostType as CatalogPost
-import Parsing.EmbedParser (extractVideoId)
+import Common.Parsing.EmbedParser (extractVideoId)
 
 data Model = Model
   { display_items :: [ CatalogPost ]
