@@ -26,12 +26,21 @@ import Miso
   , consoleLog
   , noEff
   )
-import Data.JSString (pack)
+import Data.JSString (JSString, pack)
 import qualified Network.Client as Client
 import Network.Http (HttpResult (..))
 import Control.Concurrent.MVar (tryTakeMVar, takeMVar, putMVar, swapMVar)
 
+import Common.Network.CatalogPostType (CatalogPost)
 import Common.Component.Search.SearchTypes
+
+
+data Interface a = Interface
+    { passAction :: Action -> a
+    , clientIface :: Client.Interface a [ CatalogPost ]
+    , searchResults :: JSString -> a
+    }
+
 
 update :: Interface a -> Action -> Model -> Effect a Model
 update iface (SearchChange q) model = model { searchTerm = q } <# do

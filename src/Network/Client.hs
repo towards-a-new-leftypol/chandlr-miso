@@ -34,6 +34,10 @@ import Network.SiteType (Site)
 import qualified Common.FrontEnd.Action as A
 import Common.Network.ClientTypes
 
+data Interface a b = Interface
+    { passAction :: Action b -> a
+    , returnResult :: Http.HttpResult b -> a
+    }
 
 update
     :: Interface a b
