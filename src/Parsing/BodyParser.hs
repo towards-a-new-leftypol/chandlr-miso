@@ -12,7 +12,6 @@ module Parsing.BodyParser
     ) where
 
 import Data.Maybe (catMaybes)
-import Data.Map (Map)
 import qualified Data.Map as Map
 import GHCJS.DOM (currentDocument)
 import GHCJS.DOM.Types
@@ -29,7 +28,6 @@ import GHCJS.DOM.JSFFI.Generated.DOMTokenList (contains)
 import Data.Text (Text)
 import Miso (consoleLog)
 import Miso.String (fromMisoString)
-import qualified Common.Network.PostType as Post
 import Common.Component.Thread.Model (PostWithBody)
 
 import Common.Parsing.PostPartType
@@ -145,8 +143,6 @@ parseS :: Element -> IO PostPart
 parseS element
     = parseChildNodes element
     >>= return . Strikethrough
-
-type Backlinks = Map Integer [Post.Post]
 
 collectBacklinks :: [PostWithBody] -> Backlinks
 collectBacklinks xs = foldr insertElement Map.empty xs
