@@ -67,6 +67,7 @@ executable chandlr
                       Network.Http
                       Common.Network.HttpTypes
                       Network.Client
+                      Common.Network.Units
                       Common.Network.ClientTypes
                       Common.Network.CatalogPostType
                       Common.Network.BoardType
