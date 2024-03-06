@@ -20,8 +20,8 @@ import Data.Maybe (fromJust)
 import Data.Text (unpack)
 import Data.JSString (JSString, pack)
 
-import qualified Network.PostType as Post
-import Network.PostType (Post)
+import qualified Common.Network.PostType as Post
+import Common.Network.PostType (Post)
 import Parsing.EmbedParser (extractVideoId)
 
 embed :: Post -> View a

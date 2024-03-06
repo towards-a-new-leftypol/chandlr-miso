@@ -22,8 +22,8 @@ import Miso.String (toMisoString)
 import Data.Time.Clock (UTCTime, diffUTCTime)
 import Data.Time.Format (formatTime, defaultTimeLocale)
 
-import Network.PostType (Post)
-import qualified Network.PostType as Post
+import Common.Network.PostType (Post)
+import qualified Common.Network.PostType as Post
 import Network.SiteType (Site)
 import qualified Network.SiteType as Site
 import Network.BoardType (Board)

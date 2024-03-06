@@ -29,7 +29,7 @@ import GHCJS.DOM.JSFFI.Generated.DOMTokenList (contains)
 import Data.Text (Text)
 import Miso (consoleLog)
 import Miso.String (fromMisoString)
-import qualified Network.PostType as Post
+import qualified Common.Network.PostType as Post
 import Component.Thread.Model (PostWithBody)
 
 import Parsing.PostPartType

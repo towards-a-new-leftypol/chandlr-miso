@@ -32,8 +32,8 @@ import Network.SiteType (Site)
 import qualified Network.SiteType as Site
 import qualified Network.BoardType as Board
 import qualified Network.ThreadType as Thread
-import qualified Network.PostType as Post
-import Network.PostType (Post)
+import qualified Common.Network.PostType as Post
+import Common.Network.PostType (Post)
 import Common.AttachmentType (Attachment, Dimension (..))
 import qualified Common.AttachmentType as Attachment
 import Network.Units (bytesToHumanReadable)

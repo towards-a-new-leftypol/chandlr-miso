@@ -6,7 +6,7 @@ module Network.ThreadType where
 import GHC.Generics
 import Data.Time.Clock (UTCTime)
 import Data.Aeson (FromJSON, ToJSON)
-import Network.PostType (Post)
+import Common.Network.PostType (Post)
 
 data Thread = Thread
   { thread_id       :: Integer

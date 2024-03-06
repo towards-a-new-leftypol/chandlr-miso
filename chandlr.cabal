@@ -71,7 +71,7 @@ executable chandlr
                       Common.Network.CatalogPostType
                       Network.BoardType
                       Network.SiteType
-                      Network.PostType
+                      Common.Network.PostType
                       Network.ThreadType
                       Common.Component.ThreadView
                       Component.Thread.Files
