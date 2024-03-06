@@ -82,7 +82,7 @@ executable chandlr
                       Common.FrontEnd.Routes
                       Common.AttachmentType
                       Parsing.BodyParser
-                      Parsing.QuoteLinkParser
+                      Common.Parsing.QuoteLinkParser
                       Parsing.EmbedParser
                       Common.Parsing.PostPartType
                       Common.Component.TimeControl

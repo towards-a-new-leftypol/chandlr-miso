@@ -33,7 +33,7 @@ import qualified Common.Network.PostType as Post
 import Common.Component.Thread.Model (PostWithBody)
 
 import Common.Parsing.PostPartType
-import Parsing.QuoteLinkParser
+import Common.Parsing.QuoteLinkParser
 
 
 nodeListToList :: NodeList -> IO [ Node ]
