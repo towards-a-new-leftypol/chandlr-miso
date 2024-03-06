@@ -30,7 +30,7 @@ import Data.Text (Text)
 import Miso (consoleLog)
 import Miso.String (fromMisoString)
 import qualified Common.Network.PostType as Post
-import Component.Thread.Model (PostWithBody)
+import Common.Component.Thread.Model (PostWithBody)
 
 import Parsing.PostPartType
 import Parsing.QuoteLinkParser

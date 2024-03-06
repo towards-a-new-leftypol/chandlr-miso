@@ -76,7 +76,7 @@ executable chandlr
                       Common.Component.ThreadView
                       Component.Thread.Files
                       Component.Thread.Intro
-                      Component.Thread.Model
+                      Common.Component.Thread.Model
                       Component.Thread.Embed
                       Common.Component.BodyRender
                       Common.FrontEnd.Routes
