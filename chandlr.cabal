@@ -74,10 +74,10 @@ executable chandlr
                       Common.Network.PostType
                       Common.Network.ThreadType
                       Common.Component.ThreadView
-                      Component.Thread.Files
-                      Component.Thread.Intro
+                      Common.Component.Thread.Files
+                      Common.Component.Thread.Intro
                       Common.Component.Thread.Model
-                      Component.Thread.Embed
+                      Common.Component.Thread.Embed
                       Common.Component.BodyRender
                       Common.FrontEnd.Routes
                       Common.AttachmentType
