@@ -12,7 +12,6 @@ module Parsing.BodyParser
     ) where
 
 import Data.Maybe (catMaybes)
-import qualified Data.Map as Map
 import GHCJS.DOM (currentDocument)
 import GHCJS.DOM.Types
     ( Element (..)
@@ -28,10 +27,10 @@ import GHCJS.DOM.JSFFI.Generated.DOMTokenList (contains)
 import Data.Text (Text)
 import Miso (consoleLog)
 import Miso.String (fromMisoString)
-import Common.Component.Thread.Model (PostWithBody)
 
 import Common.Parsing.PostPartType
 import Common.Parsing.QuoteLinkParser
+import Common.Parsing.PostBodyUtils
 
 
 nodeListToList :: NodeList -> IO [ Node ]
@@ -143,25 +142,3 @@ parseS :: Element -> IO PostPart
 parseS element
     = parseChildNodes element
     >>= return . Strikethrough
-
-collectBacklinks :: [PostWithBody] -> Backlinks
-collectBacklinks xs = foldr insertElement Map.empty xs
-  where
-    insertElement :: PostWithBody -> Backlinks -> Backlinks
-    insertElement (post, body) acc = foldr insertPost acc (quotedPosts body)
-      where
-        insertPost postId = Map.insertWith (++) postId [post]
-
-
-quotedPosts :: [ PostPart ] -> [ Integer ]
-quotedPosts [] = []
-quotedPosts (Quote (Right (ParsedURL { postId = Just p })) : xs) = [p] ++ quotedPosts xs
-quotedPosts ((GreenText     xs) : xxs) = quotedPosts xs ++ quotedPosts xxs
-quotedPosts ((OrangeText    xs) : xxs) = quotedPosts xs ++ quotedPosts xxs
-quotedPosts ((RedText       xs) : xxs) = quotedPosts xs ++ quotedPosts xxs
-quotedPosts ((Spoiler       xs) : xxs) = quotedPosts xs ++ quotedPosts xxs
-quotedPosts ((Bold          xs) : xxs) = quotedPosts xs ++ quotedPosts xxs
-quotedPosts ((Underlined    xs) : xxs) = quotedPosts xs ++ quotedPosts xxs
-quotedPosts ((Italics       xs) : xxs) = quotedPosts xs ++ quotedPosts xxs
-quotedPosts ((Strikethrough xs) : xxs) = quotedPosts xs ++ quotedPosts xxs
-quotedPosts _ = []
