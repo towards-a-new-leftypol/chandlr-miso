@@ -84,7 +84,7 @@ executable chandlr
                       Parsing.BodyParser
                       Parsing.QuoteLinkParser
                       Parsing.EmbedParser
-                      Parsing.PostPartType
+                      Common.Parsing.PostPartType
                       Common.Component.TimeControl
                       Component.Search
                       Common.Component.Search.SearchTypes

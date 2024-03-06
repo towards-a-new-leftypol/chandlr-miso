@@ -32,7 +32,7 @@ import Miso.String (fromMisoString)
 import qualified Common.Network.PostType as Post
 import Common.Component.Thread.Model (PostWithBody)
 
-import Parsing.PostPartType
+import Common.Parsing.PostPartType
 import Parsing.QuoteLinkParser
 
 
