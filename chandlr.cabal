@@ -73,7 +73,7 @@ executable chandlr
                       Network.SiteType
                       Network.PostType
                       Network.ThreadType
-                      Component.ThreadView
+                      Common.Component.ThreadView
                       Component.Thread.Files
                       Component.Thread.Intro
                       Component.Thread.Model
