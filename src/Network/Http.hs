@@ -13,7 +13,7 @@ import Data.ByteString.Lazy (toStrict)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8, decodeUtf8)
 import Control.Monad.IO.Class (liftIO)
-import Control.Concurrent.MVar (MVar, newEmptyMVar, putMVar)
+import Control.Concurrent.MVar (newEmptyMVar, putMVar)
 import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrict, encode)
 import GHCJS.DOM.XMLHttpRequest
     ( newXMLHttpRequest
@@ -33,19 +33,7 @@ import GHCJS.DOM.XMLHttpRequestEventTarget (load, abortEvent, error)
 import GHCJS.DOM.Types (toJSString)
 import Miso (consoleLog)
 
-data HttpMethod = GET | PUT | POST | DELETE | PATCH
-    deriving Show
-
-
-data HttpResult a
-    = Error
-    | HttpResponse
-        { status_code :: Int
-        , status_text :: String
-        , body        :: Maybe a
-        }
-
-type HttpActionResult a = (IO (), MVar (HttpResult a)) -- (abort, result)
+import Common.Network.HttpTypes
 
 type Header = (JSString, JSString)
 

@@ -65,6 +65,7 @@ executable chandlr
     other-modules:    Component.CatalogGrid
                       Common.FrontEnd.Action
                       Network.Http
+                      Common.Network.HttpTypes
                       Network.Client
                       Common.Network.ClientTypes
                       Common.Network.CatalogPostType
