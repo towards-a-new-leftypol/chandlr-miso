@@ -31,7 +31,7 @@ import qualified Network.Client as Client
 import Network.Http (HttpResult (..))
 import Control.Concurrent.MVar (tryTakeMVar, takeMVar, putMVar, swapMVar)
 
-import Component.Search.SearchTypes
+import Common.Component.Search.SearchTypes
 
 update :: Interface a -> Action -> Model -> Effect a Model
 update iface (SearchChange q) model = model { searchTerm = q } <# do

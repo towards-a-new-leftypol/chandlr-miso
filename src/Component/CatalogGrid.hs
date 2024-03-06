@@ -23,8 +23,8 @@ import Miso
     )
 import Miso.String (toMisoString, MisoString)
 
-import Network.CatalogPostType (CatalogPost)
-import qualified Network.CatalogPostType as CatalogPost
+import Common.Network.CatalogPostType (CatalogPost)
+import qualified Common.Network.CatalogPostType as CatalogPost
 import Parsing.EmbedParser (extractVideoId)
 
 data Model = Model

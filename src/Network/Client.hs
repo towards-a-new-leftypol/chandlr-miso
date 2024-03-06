@@ -29,7 +29,7 @@ import Miso (effectSub, Effect)
 import Miso.String (toMisoString)
 
 import qualified Network.Http as Http
-import Network.CatalogPostType (CatalogPost)
+import Common.Network.CatalogPostType (CatalogPost)
 import Network.SiteType (Site)
 import qualified Common.FrontEnd.Action as A
 import Network.ClientTypes

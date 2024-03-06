@@ -46,13 +46,13 @@ import Servant.API
 import Common.FrontEnd.Action
 import Common.FrontEnd.Routes
 import qualified Network.Client as Client
-import Network.CatalogPostType (CatalogPost)
-import qualified Network.CatalogPostType as CatalogPost
+import Common.Network.CatalogPostType (CatalogPost)
+import qualified Common.Network.CatalogPostType as CatalogPost
 import qualified Component.CatalogGrid as Grid
 import qualified Component.ThreadView as Thread
 import qualified Component.TimeControl as TC
 import qualified Component.Search as Search
-import qualified Component.Search.SearchTypes as Search
+import qualified Common.Component.Search.SearchTypes as Search
 
 
 data Model = Model

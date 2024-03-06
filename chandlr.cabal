@@ -67,7 +67,7 @@ executable chandlr
                       Network.Http
                       Network.Client
                       Network.ClientTypes
-                      Network.CatalogPostType
+                      Common.Network.CatalogPostType
                       Network.BoardType
                       Network.SiteType
                       Network.PostType
@@ -86,7 +86,7 @@ executable chandlr
                       Parsing.PostPartType
                       Component.TimeControl
                       Component.Search
-                      Component.Search.SearchTypes
+                      Common.Component.Search.SearchTypes
 
 
     -- LANGUAGE extensions used by modules in this package.
