@@ -51,29 +51,10 @@ import qualified Common.Network.CatalogPostType as CatalogPost
 import qualified Common.Component.CatalogGrid as Grid
 import qualified Common.Component.ThreadView as Thread
 import qualified Common.Component.TimeControl as TC
-import qualified Component.Search as Search
-
-
-data Model = Model
-    { grid_model :: Grid.Model
-    , client_model :: Client.Model
-    , thread_model :: Maybe Thread.Model
-    , current_uri :: URI
-    , media_root_ :: JSString
-    , current_time :: UTCTime
-    , tc_model :: TC.Model
-    , search_model :: Search.Model
-    {-
-     - Goal:
-     -  handle search results
-     -      - which means displaying them in a catalog
-     -      - which means having STATE that says we should be displaying
-     -      search results.
-     -          - so we need the results somewhere
-     -          - also need to change the url to show results
-     -}
-    } deriving Eq
-
+import qualified Common.Component.Search as Search
+import Common.FrontEnd.Views
+import Common.FrontEnd.Model
+import Common.FrontEnd.Interfaces
 
 initialActionFromRoute :: Model -> URI -> Action
 initialActionFromRoute model uri = either (const NoAction) id routing_result
@@ -190,42 +171,7 @@ mainView model = view
           either (const page404) id
             $ runRoute (Proxy :: Proxy Route) handlers current_uri model
 
-        handlers = catalog_view :<|> thread_view :<|> search_view
-
-        catalog_view :: Model -> View Action
-        catalog_view m = div_ []
-            [ div_
-                [ class_ "page_heading" ]
-                [ h1_ [] [ text "Overboard Catalog" ]
-                , time_ [] [ text $ pack $ show $ current_time model ]
-                ]
-            , TC.view iTime (tc_model m)
-            , Search.view iSearch (search_model m)
-            , Grid.view iGrid (grid_model model)
-            ]
-
-        thread_view :: Text -> Text -> BoardThreadId -> Model -> View Action
-        thread_view site_name board_pathpart board_thread_id m = maybe
-            (h1_ [] [ text "Thread View" ])
-            Thread.view
-            (thread_model m)
-
-        search_view :: Maybe Text -> Model -> View Action
-        search_view _ m = div_ []
-            [ div_
-                [ class_ "page_heading" ]
-                [ h1_ [] [ text "Search" ]
-                , time_ [] [ text $ Search.searchTerm $ search_model m ]
-                ]
-            , Search.view iSearch (search_model m)
-            , Grid.view iGrid $ (grid_model model)
-                    { Grid.display_items = (Search.displayResults (search_model m))
-                    }
-            ]
-
-        page404 :: View Action
-        page404 = h1_ [] [ text "404 Not Found" ]
-
+        handlers = catalogView :<|> threadView :<|> searchView
 
 mainUpdate :: Action -> Model -> Effect Action Model
 mainUpdate NoAction m = noEff m
@@ -311,40 +257,3 @@ mainUpdate (SearchResults query) m = m { current_uri = new_current_uri } <# do
             { uriPath = "/search"
             , uriQuery = "?search=" ++ (escapeURIString isAllowedInURI $ unpack query)
             }
-
-iGrid :: Grid.Interface Action
-iGrid = Grid.Interface
-    { Grid.passAction = GridAction
-    , Grid.threadSelected = mkGetThread
-    }
-
-    where
-        mkGetThread :: CatalogPost -> Action
-        mkGetThread post = GetThread GetThreadArgs
-            { website = CatalogPost.site_name post
-            , board_pathpart = CatalogPost.pathpart post
-            , board_thread_id = CatalogPost.board_thread_id post
-            }
-
-iClient :: (FromJSON a) => (Client.HttpResult a -> Action) -> Client.Interface Action a
-iClient action = Client.Interface
-    { Client.passAction = ClientAction action
-    , Client.returnResult = action
-    }
-
-iThread :: Thread.Interface Action
-iThread = Thread.Interface { Thread.passAction = ThreadAction }
-
-iTime :: TC.Interface Action
-iTime = TC.Interface
-  { TC.passAction = TimeAction
-  , TC.goTo = GoToTime
-  }
-
-iSearch :: Search.Interface Action
-iSearch =
-  Search.Interface
-    { passAction = SearchAction
-    , clientIface = iClient $ SearchAction . Search.SearchResult
-    , searchResults = SearchResults
-    }
