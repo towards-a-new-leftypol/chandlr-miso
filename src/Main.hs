@@ -14,15 +14,11 @@ import System.FilePath ((</>))
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import Control.Concurrent.MVar (MVar, newEmptyMVar)
 
-import Data.Aeson (FromJSON)
 import Data.JSString (pack, append, unpack)
 import Miso
     ( View
     , startApp
     , App (..)
-    , h1_
-    , div_
-    , text
     , Effect
     , (<#)
     , noEff
@@ -34,8 +30,6 @@ import Miso
     , consoleLog
     , pushURI
     , uriSub
-    , time_
-    , class_
     )
 import GHCJS.DOM (currentDocument)
 import GHCJS.DOM.Types (toJSString, fromJSString, Element, JSString)
@@ -46,8 +40,6 @@ import Servant.API
 import Common.FrontEnd.Action
 import Common.FrontEnd.Routes
 import qualified Network.Client as Client
-import Common.Network.CatalogPostType (CatalogPost)
-import qualified Common.Network.CatalogPostType as CatalogPost
 import qualified Common.Component.CatalogGrid as Grid
 import qualified Common.Component.ThreadView as Thread
 import qualified Common.Component.TimeControl as TC

@@ -76,6 +76,7 @@ toPostPart_ node_type node
           "STRONG" -> parseStrong element
           "U"      -> parseU element
           "S"      -> parseS element
+          "PRE"    -> parseCode element
           "BR"     -> return Skip
           _        -> do
             consoleLog tagName
@@ -142,3 +143,8 @@ parseS :: Element -> IO PostPart
 parseS element
     = parseChildNodes element
     >>= return . Strikethrough
+
+parseCode :: Element -> IO PostPart
+parseCode element
+    = parseChildNodes element
+    >>= return . Code
