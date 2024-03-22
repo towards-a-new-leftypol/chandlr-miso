@@ -44,19 +44,6 @@ update iface (Connect (abort, resultVar)) m = effectSub m $
         result :: Http.HttpResult b <- takeMVar resultVar
         sink $ (returnResult iface) result
 
-data FetchCatalogArgs = FetchCatalogArgs
-  { max_time :: UTCTime
-  , max_row_read :: Int
-  } deriving (Generic, ToJSON)
-
-
-data SearchPostsArgs = SearchPostsArgs
-  { search_text :: JSString
-  , max_rows :: Int
-  }
-    deriving (Generic, ToJSON)
-
-
 http_
     :: (ToJSON c, FromJSON b)
     => Model
