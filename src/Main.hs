@@ -43,10 +43,12 @@ import qualified Network.Client as Client
 import qualified Common.Component.CatalogGrid as Grid
 import qualified Common.Component.ThreadView as Thread
 import qualified Common.Component.TimeControl as TC
-import qualified Common.Component.Search as Search
+import qualified Common.Component.Search.SearchTypes as Search
+import qualified Component.Search as Search
 import Common.FrontEnd.Views
 import Common.FrontEnd.Model
 import Common.FrontEnd.Interfaces
+import qualified Common.Network.ClientTypes as Client
 
 initialActionFromRoute :: Model -> URI -> Action
 initialActionFromRoute model uri = either (const NoAction) id routing_result
@@ -154,7 +156,6 @@ main = do
         , mountPoint    = Nothing
         , logLevel      = Off
         }
-
 
 mainView :: Model -> View Action
 mainView model = view

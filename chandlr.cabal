@@ -62,7 +62,8 @@ executable chandlr
     ghcjs-options:    -dedupe
 
     -- Modules included in this executable, other than Main.
-    other-modules:    Common.Component.CatalogGrid
+    other-modules:    
+                      Common.Component.CatalogGrid
                       Common.FrontEnd.Action
                       Network.Http
                       Common.Network.HttpTypes
@@ -87,8 +88,9 @@ executable chandlr
                       Common.Parsing.EmbedParser
                       Common.Parsing.PostPartType
                       Common.Component.TimeControl
-                      Common.Component.Search
+                      Component.Search
                       Common.Component.Search.SearchTypes
+                      Common.Component.Search.View
 
 
     -- LANGUAGE extensions used by modules in this package.
