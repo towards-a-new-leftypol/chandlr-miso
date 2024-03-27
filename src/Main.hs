@@ -8,16 +8,17 @@ module Main where
 import Data.Proxy
 import Data.Maybe (maybe, fromJust)
 import Data.Text (Text)
+import Data.Text.Encoding (encodeUtf8)
 import qualified Data.Text as T
 import Network.URI (uriPath, uriQuery, escapeURIString, unEscapeString, isAllowedInURI)
 import System.FilePath ((</>))
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import Control.Concurrent.MVar (MVar, newEmptyMVar)
-
 import Data.JSString (pack, append, unpack)
+import Data.JSString.Text (textFromJSString)
 import Miso
     ( View
-    , startApp
+    , miso
     , App (..)
     , Effect
     , (<#)
@@ -26,16 +27,17 @@ import Miso
     , LogLevel (Off)
     , URI
     , runRoute
-    , getCurrentURI
     , consoleLog
     , pushURI
     , uriSub
+    --, getCurrentURI
     )
 import GHCJS.DOM (currentDocument)
 import GHCJS.DOM.Types (toJSString, fromJSString, Element, JSString)
 import GHCJS.DOM.ParentNode (querySelector)
 import GHCJS.DOM.Element (getAttribute)
 import Servant.API
+import Data.Aeson (decodeStrict, FromJSON)
 
 import Common.FrontEnd.Action
 import Common.FrontEnd.Routes
@@ -45,10 +47,36 @@ import qualified Common.Component.ThreadView as Thread
 import qualified Common.Component.TimeControl as TC
 import qualified Common.Component.Search.SearchTypes as Search
 import qualified Component.Search as Search
+import Common.Network.SiteType (Site)
 import Common.FrontEnd.Views
 import Common.FrontEnd.Model
 import Common.FrontEnd.Interfaces
-import qualified Common.Network.ClientTypes as Client
+import Common.Network.CatalogPostType (CatalogPost)
+
+data InitialData
+    = CatalogData [ CatalogPost ]
+    | SearchData [ CatalogPost ]
+    | ThreadData Site
+    | Nil
+
+parseInitialDataUsingRoute :: Model -> URI -> JSString -> InitialData
+parseInitialDataUsingRoute model uri raw_json = either (const Nil) id routing_result
+    where
+        decoded_thing :: (FromJSON a) => Maybe a
+        decoded_thing = decodeStrict $ encodeUtf8 $ textFromJSString raw_json
+
+        routing_result = runRoute (Proxy :: Proxy Route) handlers (const uri) model
+
+        handlers = h_latest :<|> h_thread :<|> h_search
+
+        h_latest :: Model -> InitialData
+        h_latest _ = CatalogData $ maybe ([]) id $ decoded_thing
+
+        h_thread :: Text -> Text -> BoardThreadId -> Model -> InitialData
+        h_thread _ _ _ _ = undefined
+
+        h_search :: Maybe Text -> Model -> InitialData
+        h_search _ _ = undefined
 
 initialActionFromRoute :: Model -> URI -> Action
 initialActionFromRoute model uri = either (const NoAction) id routing_result
@@ -104,13 +132,13 @@ initialModel pgroot client_fetch_count media_root u t smv = Model
         }
 
 
-getMetadata :: String -> IO (Maybe JSString)
+getMetadata :: JSString -> IO (Maybe JSString)
 getMetadata key = do
     doc <- currentDocument
 
     mElem :: Maybe Element <- case doc of
         Nothing -> return Nothing
-        Just d -> querySelector d $ "meta[name='" ++ key ++ "']"
+        Just d -> querySelector d $ "meta[name='" <> key <> "']"
 
     case mElem of
         Nothing -> return Nothing
@@ -121,12 +149,8 @@ main :: IO ()
 main = do
     consoleLog "Hello World!"
 
-    uri <- getCurrentURI
-
-    consoleLog $ toJSString $ show uri
-
     pg_api_root <- getMetadata "postgrest-root" >>=
-        return . maybe "http://localhost:2000" id
+        return . maybe "http://localhost:3000" id
     consoleLog pg_api_root
 
     pg_fetch_count <- getMetadata "postgrest-fetch-count" >>=
@@ -137,25 +161,47 @@ main = do
 
     now <- getCurrentTime
 
+    -- uri <- getCurrentURI
+
+    initial_data <- getMetadata "initial-data" >>= return . maybe "" id
+
+    -- how to decode initial_data:
+    --      - need to use runRoute but return some kind of new data type that wraps
+    --      our data for each view, with constructors like InitialCatalog [ CatalogPost ] etc
+    --
+    --      - to use this, need to pass in a Model
+
     search_var <- newEmptyMVar
 
-    let initial_model = initialModel
-          pg_api_root
-          pg_fetch_count
-          media_root uri
-          now
-          search_var
+    miso $ \uri ->
+            let initial_model = initialModel
+                  pg_api_root
+                  pg_fetch_count
+                  media_root
+                  uri
+                  now
+                  search_var
+            in
+                App
+                    { model         = parseInitialData initial_model uri initial_data
+                    , update        = mainUpdate
+                    , view          = mainView
+                    , subs          = [ uriSub ChangeURI ]
+                    , events        = defaultEvents
+                    , initialAction = NoAction --initialActionFromRoute initial_model uri
+                    , mountPoint    = Nothing
+                    , logLevel      = Off
+                    }
 
-    startApp App
-        { model         = initial_model
-        , update        = mainUpdate
-        , view          = mainView
-        , subs          = [ uriSub ChangeURI ]
-        , events        = defaultEvents
-        , initialAction = initialActionFromRoute initial_model uri
-        , mountPoint    = Nothing
-        , logLevel      = Off
-        }
+    where
+        parseInitialData :: Model -> URI -> JSString -> Model
+        parseInitialData m uri json_str = applyInitialData m initial_data
+            where
+                applyInitialData :: Model -> InitialData -> Model
+                applyInitialData model (CatalogData posts) =
+                    model { grid_model = Grid.Model posts (media_root_ model) }
+
+                initial_data = parseInitialDataUsingRoute m uri json_str
 
 mainView :: Model -> View Action
 mainView model = view

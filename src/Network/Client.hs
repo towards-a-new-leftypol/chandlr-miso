@@ -17,7 +17,6 @@ module Network.Client
     , search
     ) where
 
-import GHC.Generics
 import Control.Monad (void)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
