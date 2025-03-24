@@ -14,9 +14,10 @@ let
       new_pkgs.haskellPackages.ghcjs-dom
       new_pkgs.haskellPackages.miso-from-html
       new_pkgs.haskellPackages.hlint
+      # pkgs.haskellPackages.haskell-language-server # this doesn't work since old pkgs doesn't contain this package
     ];
   });
 
 in
 
-  if pkgs.lib.inNixShell then env else drv
+if pkgs.lib.inNixShell then env else drv

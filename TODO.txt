@@ -1,13 +1,34 @@
-- get embeds working ✓
-- need to implement search ✓
-- change urls / history when time-travelling
-- remove duplicate threads from view (duplicate because the OP has multiple pictures) ✓
-- optimize rendering (especially for mobile)
-  - need to profile the code, perhaps profiling the views by removing certain elements (like the body of a post)
-    and measuring the rendering speed
+Done:
+
 - server-side rendering
-    - make new servant project
-    - copy isomorphic example
+    - make new servant project ✓
+    - copy isomorphic example ✓
+    - catalog view ✓
+    - thread view
+    - search view
+- get embeds working ✓
+- need to display the current time you are at (or Latest) ✓
+- need to implement search ✓
+- fix thumbnails for older posts ✓
+- remove duplicate threads from view (duplicate because the OP has multiple pictures) ✓
+- scrape other websites and add them in ✓
+    - i think this is more useful than the archival property, which is really
+    just there to preserve links. the time travel thing is a bit of a gimmick
+
+TODO:
+- redo routing / add missing routes
+    - selecting a time doesn't change url
+    - searching doesn't have a route server-side
+    - hitting back after searching for a term from the search results page
+      doesn't go back. (search for A, then for B, then hit back).
+- collect profiling data
+    - maybe render the page with time breakdown?
+        - is this possible to do automagically? some sort of monad that gives a breakdown?
+    - why is going into a thread so slow compared to server side?
+    - optimize rendering (especially for mobile)
+      - need to profile the code, perhaps profiling the views by removing certain elements (like the body of a post)
+        and measuring the rendering speed
+- change urls / history when time-travelling
 - control to manually put in the datetime instead of using the slider
   for fine-grained control
 - have some process respond to http calls from the board to inform the db of new posts
@@ -15,14 +36,28 @@
     - need toolbar to navigate and select which boards to view
     - choose boards to display
 - time slider should align times to the hour
-- scrape other websites and add them in
-    - i think this is more useful than the archival property, which is really
-    just there to preserve links. the time travel thing is a bit of a gimmick
 - "infinite" scrolling  
     - just load more!
-- fix thumbnails for older posts ✓
 - need to support flags
 - need to support mod actions like saging a thread or deleting a post
-- need to display the current time you are at (or Latest) ✓
 - add server sent event (only when in the "present" time wise) and listen
   for new posts
+
+- build navigation feature
+    Site(s) > Board(s) > Thread > Post
+
+- delete posts in thread that have been deleted.
+
+
+BUGS/New Todo:
+    - navigation:
+        - pressing back from certain pages
+        - that one anarchy with banned material thread crashes
+        - refreshing search results 404's
+
+    - search:
+        - doesn't link to comments properly (goes to OP)
+        - has ugly thing instead of thumbnail for comments
+            - perhaps should just be >>
+
+        - search by image (already have phash so why not?) (though not a bug...)

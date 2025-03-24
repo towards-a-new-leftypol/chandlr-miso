@@ -32,3 +32,24 @@
     <em>400,000 marched in Washington DC in protest of Biden's support of Israel's genocide.</em>
   </div>
 </div>
+<script>
+  console.log("Hello world");
+
+  // Get the first element with the class name 'body'
+  var bodyElement = document.querySelector('.body');
+
+  if (bodyElement) {
+      // Iterate over all child nodes of the 'body' element
+      bodyElement.childNodes.forEach(node => {
+          if (node.nodeType === Node.TEXT_NODE) {
+              // If it's a Text node, print the text content
+              console.log('text: %s', node.textContent.trim());
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+              // If it's an Element node, print the tag name
+              console.log('element: %s', node.tagName);
+          }
+      });
+  } else {
+      console.log('No element with class "body" found.');
+  }
+</script>
