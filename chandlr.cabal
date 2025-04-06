@@ -52,65 +52,86 @@ build-type:         Simple
 -- extra-source-files:
 
 executable chandlr
-    if !impl(ghcjs)
+    if !(impl(ghcjs) || arch(javascript) || arch(wasm32))
         buildable: False
 
     -- .hs or .lhs file containing the Main module.
     main-is:          Main.hs
 
     ghc-options:      -Wall -O2
+
+    if arch(wasm32)
+        ghc-options:
+        -no-hs-main -optl-mexec-model=reactor "-optl-Wl,--export=hs_start"
+
+    if impl(ghcjs) || arch(javascript)
+        cpp-options:
+          -DGHCJS_BOTH
+    if impl(ghcjs)
+        cpp-options:
+          -DGHCJS_OLD
+    elif arch(javascript)
+        cpp-options:
+          -DGHCJS_NEW
+    elif arch(wasm32)
+        cpp-options:
+          -DWASM
+
     ghcjs-options:    -dedupe
 
     -- Modules included in this executable, other than Main.
     other-modules:    
-                      Common.Component.CatalogGrid
-                      Common.FrontEnd.Action
-                      Network.Http
-                      Common.Network.HttpTypes
-                      Network.Client
-                      Common.Network.Units
-                      Common.Network.ClientTypes
-                      Common.Network.CatalogPostType
-                      Common.Network.BoardType
-                      Common.Network.SiteType
-                      Common.Network.PostType
-                      Common.Network.ThreadType
-                      Common.Component.ThreadView
-                      Common.Component.Thread.Files
-                      Common.Component.Thread.Intro
-                      Common.Component.Thread.Model
-                      Common.Component.Thread.Embed
-                      Common.Component.BodyRender
-                      Common.FrontEnd.Routes
-                      Common.AttachmentType
-                      Parsing.BodyParser
-                      Common.Parsing.QuoteLinkParser
-                      Common.Parsing.EmbedParser
-                      Common.Parsing.PostPartType
-                      Common.Component.TimeControl
-                      Component.Search
-                      Common.Component.Search.SearchTypes
-                      Common.Component.Search.View
-
+            Common.AttachmentType
+            Common.Component.BodyRender
+            Common.Component.CatalogGrid
+            Common.Component.Search.SearchTypes
+            Common.Component.Search.View
+            Common.Component.Thread.Embed
+            Common.Component.Thread.Files
+            Common.Component.Thread.Intro
+            Common.Component.Thread.Model
+            Common.Component.ThreadView
+            Common.Component.TimeControl
+            Common.FrontEnd.Action
+            Common.FrontEnd.Interfaces
+            Common.FrontEnd.Model
+            Common.FrontEnd.Routes
+            Common.FrontEnd.Views
+            Common.Network.BoardType
+            Common.Network.CatalogPostType
+            Common.Network.ClientTypes
+            Common.Network.HttpTypes
+            Common.Network.PostType
+            Common.Network.SiteType
+            Common.Network.ThreadType
+            Common.Network.Units
+            Common.Parsing.EmbedParser
+            Common.Parsing.PostBodyUtils
+            Common.Parsing.PostPartType
+            Common.Parsing.QuoteLinkParser
+            Component.Search
+            JSFFI.FFI
+            Network.Client
+            Network.Http
+            Parsing.BodyParser
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
     build-depends:     aeson,
-                       base < 5,
-                       ghcjs-base,
+                       base,
                        miso,
                        servant,
-                       ghcjs-dom,
-                       ghcjs-dom-jsffi,
                        text,
                        time,
                        bytestring,
                        filepath,
                        network-uri,
                        containers,
-                       parsec
+                       parsec,
+                       ghc-experimental,
+                       jsaddle
 
     -- Directories containing source files.
     hs-source-dirs:   src

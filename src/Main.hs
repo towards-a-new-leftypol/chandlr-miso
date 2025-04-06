@@ -144,6 +144,9 @@ getMetadata key = do
         Nothing -> return Nothing
         Just el -> getAttribute el ("content" :: JSString)
 
+#if defined(wasm32_HOST_ARCH)
+foreign export javascript "hs_start" main :: IO ()
+#endif
 
 main :: IO ()
 main = do

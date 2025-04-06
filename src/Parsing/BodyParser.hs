@@ -12,22 +12,31 @@ module Parsing.BodyParser
     ) where
 
 import Data.Maybe (catMaybes)
-import GHCJS.DOM (currentDocument)
-import GHCJS.DOM.Types
-    ( Element (..)
-    , JSString
-    , NodeList
-    , uncheckedCastTo
-    )
-import GHCJS.DOM.JSFFI.Generated.Document
-import GHCJS.DOM.JSFFI.Generated.Element
-import GHCJS.DOM.JSFFI.Generated.Node hiding (contains)
-import qualified GHCJS.DOM.JSFFI.Generated.NodeList as NodeList
-import GHCJS.DOM.JSFFI.Generated.DOMTokenList (contains)
 import Data.Text (Text)
 import Miso (consoleLog)
-import Miso.String (fromMisoString)
 
+import JSFFI.FFI
+    ( js_document
+    , js_createElement
+    , js_setInnerHTML
+    , js_getChildNodes
+    , js_getClassList
+    , js_contains
+    , js_getAttribute
+    , js_getTagName
+    , js_getNodeType
+    , js_getTextContent
+    , js_getNodeListItem
+    , js_getNodeListLength
+    , Element
+    , JSString
+    , Node
+    , NodeList
+    , NodeType (..)
+    , elemToNode
+    , nodeToElem
+    , fromJSString
+    )
 import Common.Parsing.PostPartType
 import Common.Parsing.QuoteLinkParser
 import Common.Parsing.PostBodyUtils
@@ -35,29 +44,29 @@ import Common.Parsing.PostBodyUtils
 
 nodeListToList :: NodeList -> IO [ Node ]
 nodeListToList l = do
-  len <- NodeList.getLength l
-  nodes <- mapM (NodeList.item l) [0..len-1]
+  len <- js_getNodeListLength l
+  nodes <- mapM (js_getNodeListItem l) [0..len-1]
   return $ catMaybes nodes
 
 
 -- | Parse the HTML string and add event handlers to certain elements
 parsePostBody :: Text -> IO [ PostPart ]
 parsePostBody htmlString = do
-  Just doc <- currentDocument
+  Just doc <- js_document
 
-  container <- createElement doc ("div" :: Text)
+  container <- js_createElement doc "div"
 
   -- Set the innerHTML of the container to the HTML string
-  setInnerHTML container htmlString
+  js_setInnerHTML container htmlString -- ERROR: htmlString is the wrong type here! (why doesn't the compiler tell us?)
 
-  children <- getChildNodes container
+  children <- js_getChildNodes (elemToNode container)
 
   parseNodeList children
 
 
 toPostPart :: Node -> IO PostPart
 toPostPart node = do
-    node_type <- getNodeType node
+    node_type <- js_getNodeType node
 
     toPostPart_ node_type node
 
@@ -65,9 +74,9 @@ toPostPart node = do
 toPostPart_ :: Word -> Node -> IO PostPart
 toPostPart_ node_type node
     | node_type == TEXT_NODE =
-        getTextContentUnchecked node >>= return . SimpleText
+        js_getTextContent node >>= return . SimpleText
     | node_type == ELEMENT_NODE = do
-        tagName :: JSString <- getTagName element
+        tagName :: JSString <- js_getTagName element
 
         case tagName of
           "A"      -> parseAnchor element
@@ -84,32 +93,31 @@ toPostPart_ node_type node
     | otherwise = return Skip
 
     where
-        element = uncheckedCastTo Element node
-
+        element = nodeToElem node
 
 
 parseAnchor :: Element -> IO PostPart
 parseAnchor element = do
-  m_href :: Maybe JSString <- getAttribute element ("href" :: JSString)
+  m_href :: Maybe JSString <- js_getAttribute element ("href" :: JSString)
 
   case m_href of
     Nothing -> return $ SimpleText "Anchor without href"
     Just href -> do
-      target <- getAttribute element ("target" :: JSString)
+      target <- js_getAttribute element ("target" :: JSString)
 
       case target of
         Just ("_blank" :: JSString) -> return $ PostedUrl href
-        _ -> return $ Quote $ parseURL $ fromMisoString href
+        _ -> return $ Quote $ parseURL $ fromJSString href
 
 
 parseSpan :: Element -> IO PostPart
 parseSpan element = do
-  classList <- getClassList element
+  classList <- js_getClassList element
 
-  quote       <- contains classList ("quote" :: JSString)
-  orangeQuote <- contains classList ("orangeQuote" :: JSString)
-  heading     <- contains classList ("heading" :: JSString)
-  spoiler     <- contains classList ("spoiler" :: JSString)
+  quote       <- js_contains classList ("quote" :: JSString)
+  orangeQuote <- js_contains classList ("orangeQuote" :: JSString)
+  heading     <- js_contains classList ("heading" :: JSString)
+  spoiler     <- js_contains classList ("spoiler" :: JSString)
 
   if | quote       -> parseChildNodes element >>= return . GreenText
      | orangeQuote -> parseChildNodes element >>= return . OrangeText
@@ -122,7 +130,7 @@ parseNodeList :: NodeList -> IO [ PostPart ]
 parseNodeList nodes = nodeListToList nodes >>= mapM toPostPart
 
 parseChildNodes :: Element -> IO [ PostPart ]
-parseChildNodes element = getChildNodes element >>= parseNodeList
+parseChildNodes element = js_getChildNodes (elemToNode element) >>= parseNodeList
 
 parseEm :: Element -> IO PostPart
 parseEm element
