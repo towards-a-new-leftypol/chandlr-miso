@@ -48,6 +48,11 @@ TODO:
 
 - delete posts in thread that have been deleted.
 
+- Whatsapp style receipts with ✓✓ checks
+    - just have a column in posts, saying read, true if anyone has loaded the content before (maybe set by JS/WASM only?)
+    - users will see a post coming from postgrest (or the SSE queue) that has this set to false and alert the server
+
+- You walk up to a telephone poll and tear off a piece of paper. Behind it are a thousand rusty staples. What did were they fastening before?
 
 BUGS/New Todo:
     - navigation:

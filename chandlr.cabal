@@ -109,11 +109,10 @@ executable chandlr
             Common.Parsing.PostBodyUtils
             Common.Parsing.PostPartType
             Common.Parsing.QuoteLinkParser
+            Common.Parsing.BodyParser
             Component.Search
-            JSFFI.FFI
             Network.Client
             Network.Http
-            Parsing.BodyParser
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -131,7 +130,8 @@ executable chandlr
                        containers,
                        parsec,
                        ghc-experimental,
-                       jsaddle
+                       jsaddle,
+                       html-parse
 
     -- Directories containing source files.
     hs-source-dirs:   src
