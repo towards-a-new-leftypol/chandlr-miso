@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Network.Http
     ( http
@@ -9,12 +10,13 @@ module Network.Http
 where
 
 import Prelude hiding (error)
-import Data.ByteString.Lazy (toStrict)
 import Data.Text (Text)
-import Data.Text.Encoding (encodeUtf8, decodeUtf8)
+import Data.Text.Lazy (toStrict)
 import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar)
-import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrict, encode)
+import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrictText)
+import Data.Aeson.Text (encodeToLazyText)
+{-
 import GHCJS.DOM.XMLHttpRequest
     ( newXMLHttpRequest
     , openSimple
@@ -27,42 +29,52 @@ import GHCJS.DOM.XMLHttpRequest
     )
 import GHCJS.DOM.JSFFI.Generated.XMLHttpRequest (send)
 import GHCJS.DOM.Types (XMLHttpRequest, JSString)
-import Data.JSString.Text (textToJSString)
 import GHCJS.DOM.EventM (onAsync)
 import GHCJS.DOM.XMLHttpRequestEventTarget (load, abortEvent, error)
 import GHCJS.DOM.Types (toJSString)
-import Miso (consoleLog)
+-}
+import Data.JSString.Text (textToJSString)
+import Miso.String (MisoString, toMisoString, fromMisoString)
+import Miso (consoleLog, JSM)
 
 import Common.Network.HttpTypes
+import JSFFI.XHR
+    ( XMLHttpRequest(..)
+    , abort
+    , send
+    , setRequestHeader
+    , open
+    , newXMLHttpRequest
+    , addEventListener
+    , getStatusText
+    , getResponseText
+    , getStatus
+    )
 
-type Header = (JSString, JSString)
+type Header = (MisoString, MisoString)
 
-mkResult :: (FromJSON a) => XMLHttpRequest -> IO (HttpResult a)
+mkResult :: (FromJSON a) => XMLHttpRequest -> JSM (HttpResult a)
 mkResult xhr = do
-        sc <- getStatus xhr
+        status_code_int <- getStatus xhr
 
-        let status_code_int :: Int = fromEnum sc
+        st :: String <- fromMisoString <$> getStatusText xhr
 
-        st :: String <- getStatusText xhr
+        mText :: Maybe Text <- (fromMisoString <$>) <$> getResponseText xhr
 
-        mBody :: Maybe Text <- getResponseText xhr
-
-        let mBytes = mBody >>= Just . encodeUtf8
-
-        case mBytes of
+        case mText of
             Nothing -> return HttpResponse
                     { status_code = status_code_int
                     , status_text = st
                     , body = Nothing
                     }
-            Just bs -> do
-                let parse_result = eitherDecodeStrict bs
+            Just response -> do
+                let parse_result = eitherDecodeStrictText response
                 case parse_result of
                     Left err -> do
-                      consoleLog $ toJSString $ show err
+                      consoleLog $ toMisoString $ show err
                       return Error
                     Right x -> do
-                        consoleLog $ toJSString "Decoding Successful"
+                        consoleLog "Decoding Successful"
                         return HttpResponse
                             { status_code = status_code_int
                             , status_text = st
@@ -72,32 +84,36 @@ mkResult xhr = do
 
 http
     :: (FromJSON a, ToJSON b)
-    => JSString
+    => MisoString
     -> HttpMethod
     -> [Header]
     -> Maybe b
-    -> IO (HttpActionResult a)
+    -> JSM (HttpActionResult a)
 http url method headers payload = do
     xhr <- newXMLHttpRequest
 
-    resultVar <- newEmptyMVar
+    resultVar <- liftIO $ newEmptyMVar
 
-    _ <- onAsync xhr load $ liftIO $ do
+    addEventListener (jsval_ xhr) "load" $ do
         result <- mkResult xhr
-        putMVar resultVar result
+        liftIO $ putMVar resultVar result
 
-    _ <- onAsync xhr abortEvent $ liftIO $
+    addEventListener (jsval_ xhr) "abortEvent" $ liftIO $
         putMVar resultVar Error
 
-    _ <- onAsync xhr error $ liftIO $
+    addEventListener (jsval_ xhr) "error" $ liftIO $
         putMVar resultVar Error
 
-    openSimple xhr (show method) url
+    open xhr (toMisoString $ show method) url
     -- "/posts?limit=10"
 
     mapM_ (\(k, v) -> setRequestHeader xhr k v) headers
 
-    let p = payload >>= Just . textToJSString . decodeUtf8 . toStrict . encode
+    let p = payload >>= Just . textToJSString . toStrict . encodeToLazyText
 
     send xhr p
     return (abort xhr, resultVar)
+
+
+    where
+        jsval_ (XMLHttpRequest x) = x

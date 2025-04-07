@@ -62,7 +62,7 @@ executable chandlr
 
     if arch(wasm32)
         ghc-options:
-        -no-hs-main -optl-mexec-model=reactor "-optl-Wl,--export=hs_start"
+            -no-hs-main -optl-mexec-model=reactor "-optl-Wl,--export=hs_start"
 
     if impl(ghcjs) || arch(javascript)
         cpp-options:
@@ -113,6 +113,7 @@ executable chandlr
             Component.Search
             Network.Client
             Network.Http
+            JSFFI.XHR
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
@@ -120,7 +121,6 @@ executable chandlr
     -- Other library packages from which modules are imported.
     build-depends:     aeson,
                        base,
-                       miso,
                        servant,
                        text,
                        time,
@@ -131,7 +131,8 @@ executable chandlr
                        parsec,
                        ghc-experimental,
                        jsaddle,
-                       html-parse
+                       html-parse,
+                       miso
 
     -- Directories containing source files.
     hs-source-dirs:   src
