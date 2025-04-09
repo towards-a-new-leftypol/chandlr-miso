@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
@@ -30,12 +31,13 @@ import Miso
     , consoleLog
     , pushURI
     , uriSub
+    , JSM
     --, getCurrentURI
     )
-import GHCJS.DOM (currentDocument)
-import GHCJS.DOM.Types (toJSString, fromJSString, Element, JSString)
-import GHCJS.DOM.ParentNode (querySelector)
-import GHCJS.DOM.Element (getAttribute)
+import Language.Javascript.JSaddle.Monad (askJSM, runJSaddle)
+-- import GHCJS.DOM.Types (toJSString, fromJSString, Element, JSString)
+-- import GHCJS.DOM.ParentNode (querySelector)
+-- import GHCJS.DOM.Element (getAttribute)
 import Servant.API
 import Data.Aeson (decodeStrict, FromJSON)
 
@@ -52,6 +54,7 @@ import Common.FrontEnd.Views
 import Common.FrontEnd.Model
 import Common.FrontEnd.Interfaces
 import Common.Network.CatalogPostType (CatalogPost)
+import JSFFI.Saddle (getDocument)
 
 data InitialData
     = CatalogData [ CatalogPost ]
@@ -132,9 +135,9 @@ initialModel pgroot client_fetch_count media_root u t smv = Model
         }
 
 
-getMetadata :: JSString -> IO (Maybe JSString)
+getMetadata :: JSString -> JSM (Maybe JSString)
 getMetadata key = do
-    doc <- currentDocument
+    doc <- getDocument
 
     mElem :: Maybe Element <- case doc of
         Nothing -> return Nothing
@@ -144,12 +147,18 @@ getMetadata key = do
         Nothing -> return Nothing
         Just el -> getAttribute el ("content" :: JSString)
 
+
 #if defined(wasm32_HOST_ARCH)
 foreign export javascript "hs_start" main :: IO ()
 #endif
 
 main :: IO ()
 main = do
+    js_context <- askJSM
+    runJSaddle ctx main
+
+mainMain :: JSM ()
+mainMain = do
     consoleLog "Hello World!"
 
     pg_api_root <- getMetadata "postgrest-root" >>=

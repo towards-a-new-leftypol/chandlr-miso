@@ -16,23 +16,6 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar)
 import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrictText)
 import Data.Aeson.Text (encodeToLazyText)
-{-
-import GHCJS.DOM.XMLHttpRequest
-    ( newXMLHttpRequest
-    , openSimple
-    , getStatus
-    , getStatusText
-    , getResponseText
-    , abort
-    , setRequestHeader
-    -- , send
-    )
-import GHCJS.DOM.JSFFI.Generated.XMLHttpRequest (send)
-import GHCJS.DOM.Types (XMLHttpRequest, JSString)
-import GHCJS.DOM.EventM (onAsync)
-import GHCJS.DOM.XMLHttpRequestEventTarget (load, abortEvent, error)
-import GHCJS.DOM.Types (toJSString)
--}
 import Data.JSString.Text (textToJSString)
 import Miso.String (MisoString, toMisoString, fromMisoString)
 import Miso (consoleLog, JSM)

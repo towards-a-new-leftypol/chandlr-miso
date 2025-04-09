@@ -18,14 +18,15 @@ module Network.Client
     ) where
 
 import Control.Monad (void)
+import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
 import Data.Aeson (ToJSON, FromJSON)
 import Data.Time.Clock (UTCTime)
 
-import GHCJS.DOM.Types (JSString)
-import Miso (effectSub, Effect)
-import Miso.String (toMisoString)
+import Miso (effectSub, Effect, JSM)
+import Miso.String (MisoString, toMisoString)
+import Language.Javascript.JSaddle.Monad (askJSM, runJSaddle)
 
 import qualified Network.Http as Http
 import Common.Network.CatalogPostType (CatalogPost)
@@ -37,20 +38,23 @@ update
     :: Interface a b
     -> Action b
     -> Model
-    -> Effect a Model
+    -> Effect Model a ()
 update iface (Connect (abort, resultVar)) m = effectSub m $
-    \sink -> void $ forkIO $ do
-        result :: Http.HttpResult b <- takeMVar resultVar
-        sink $ (returnResult iface) result
+    \sink -> do
+        ctx <- askJSM
+
+        void $ liftIO $ forkIO $ do
+            result :: Http.HttpResult b <- takeMVar resultVar
+            runJSaddle ctx $ sink $ (returnResult iface) result
 
 http_
     :: (ToJSON c, FromJSON b)
     => Model
     -> Interface a b
-    -> JSString
+    -> MisoString
     -> Http.HttpMethod
     -> Maybe c
-    -> IO a
+    -> JSM a
 http_ m iface api_path method payload =
     Http.http
         (pgApiRoot m <> api_path)
@@ -60,7 +64,7 @@ http_ m iface api_path method payload =
     >>= return . (passAction iface) . Connect
 
 
-fetchLatest :: Model -> UTCTime -> Interface a [ CatalogPost ] -> IO a
+fetchLatest :: Model -> UTCTime -> Interface a [ CatalogPost ] -> JSM a
 fetchLatest m t iface = do
     let payload = Just $ FetchCatalogArgs
             { max_time = t
@@ -70,7 +74,7 @@ fetchLatest m t iface = do
     http_ m iface "/rpc/fetch_catalog" Http.POST payload
 
 
-getThread :: Model -> Interface a [ Site ] -> A.GetThreadArgs -> IO a
+getThread :: Model -> Interface a [ Site ] -> A.GetThreadArgs -> JSM a
 getThread m iface A.GetThreadArgs {..} =
     http_ m iface path Http.GET (Nothing :: Maybe ())
 
@@ -83,7 +87,7 @@ getThread m iface A.GetThreadArgs {..} =
             <> "&boards.threads.posts.order=board_post_id.asc"
 
 
-search :: Model -> JSString -> Interface a [ CatalogPost ] -> IO a
+search :: Model -> MisoString -> Interface a [ CatalogPost ] -> JSM a
 search m query iface =
     http_ m iface "/rpc/search_posts" Http.POST payload
 
