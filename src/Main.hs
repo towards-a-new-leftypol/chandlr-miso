@@ -27,14 +27,15 @@ import Miso
     , defaultEvents
     , LogLevel (Off)
     , URI
-    , runRoute
+    , route
     , consoleLog
     , pushURI
     , uriSub
     , JSM
+    , run
     --, getCurrentURI
     )
-import Language.Javascript.JSaddle.Monad (askJSM, runJSaddle)
+import Miso.String (MisoString, toMisoString)
 -- import GHCJS.DOM.Types (toJSString, fromJSString, Element, JSString)
 -- import GHCJS.DOM.ParentNode (querySelector)
 -- import GHCJS.DOM.Element (getAttribute)
@@ -54,7 +55,10 @@ import Common.FrontEnd.Views
 import Common.FrontEnd.Model
 import Common.FrontEnd.Interfaces
 import Common.Network.CatalogPostType (CatalogPost)
-import JSFFI.Saddle (getDocument)
+import JSFFI.Saddle
+    ( getDocument
+    , Element
+    )
 
 data InitialData
     = CatalogData [ CatalogPost ]
@@ -62,13 +66,13 @@ data InitialData
     | ThreadData Site
     | Nil
 
-parseInitialDataUsingRoute :: Model -> URI -> JSString -> InitialData
+parseInitialDataUsingRoute :: Model -> URI -> MisoString -> InitialData
 parseInitialDataUsingRoute model uri raw_json = either (const Nil) id routing_result
     where
         decoded_thing :: (FromJSON a) => Maybe a
         decoded_thing = decodeStrict $ encodeUtf8 $ textFromJSString raw_json
 
-        routing_result = runRoute (Proxy :: Proxy Route) handlers (const uri) model
+        routing_result = route (Proxy :: Proxy Route) handlers (const uri) model
 
         handlers = h_latest :<|> h_thread :<|> h_search
 
@@ -84,7 +88,7 @@ parseInitialDataUsingRoute model uri raw_json = either (const Nil) id routing_re
 initialActionFromRoute :: Model -> URI -> Action
 initialActionFromRoute model uri = either (const NoAction) id routing_result
     where
-        routing_result = runRoute (Proxy :: Proxy Route) handlers (const uri) model
+        routing_result = route (Proxy :: Proxy Route) handlers (const uri) model
 
         handlers = h_latest :<|> h_thread :<|> h_search
 
@@ -101,16 +105,16 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
             | otherwise = (Search.passAction iSearch) $ Search.ChangeAndSubmit unescaped_search_query
 
             where
-                unescaped_search_query = toJSString $ unEscapeString $ T.unpack search_query
+                unescaped_search_query = toMisoString $ unEscapeString $ T.unpack search_query
 
 
 initialModel
-    :: JSString
+    :: MisoString
     -> Int
-    -> JSString
+    -> MisoString
     -> URI
     -> UTCTime
-    -> MVar JSString
+    -> MVar MisoString
     -> Model
 initialModel pgroot client_fetch_count media_root u t smv = Model
     { grid_model = Grid.initialModel media_root
@@ -135,7 +139,7 @@ initialModel pgroot client_fetch_count media_root u t smv = Model
         }
 
 
-getMetadata :: JSString -> JSM (Maybe JSString)
+getMetadata :: MisoString -> JSM (Maybe MisoString)
 getMetadata key = do
     doc <- getDocument
 
@@ -145,7 +149,7 @@ getMetadata key = do
 
     case mElem of
         Nothing -> return Nothing
-        Just el -> getAttribute el ("content" :: JSString)
+        Just el -> getAttribute el ("content" :: MisoString)
 
 
 #if defined(wasm32_HOST_ARCH)
@@ -153,9 +157,7 @@ foreign export javascript "hs_start" main :: IO ()
 #endif
 
 main :: IO ()
-main = do
-    js_context <- askJSM
-    runJSaddle ctx main
+main = run mainMain
 
 mainMain :: JSM ()
 mainMain = do
@@ -166,7 +168,7 @@ mainMain = do
     consoleLog pg_api_root
 
     pg_fetch_count <- getMetadata "postgrest-fetch-count" >>=
-        return . maybe 1000 (read . fromJSString)
+        return . maybe 1000 (read . unpack)
 
     media_root <- getMetadata "media-root" >>=
         return . maybe "undefined" id
@@ -206,7 +208,7 @@ mainMain = do
                     }
 
     where
-        parseInitialData :: Model -> URI -> JSString -> Model
+        parseInitialData :: Model -> URI -> MisoString -> Model
         parseInitialData m uri json_str = applyInitialData m initial_data
             where
                 applyInitialData :: Model -> InitialData -> Model
@@ -218,13 +220,12 @@ mainMain = do
 mainView :: Model -> View Action
 mainView model = view
     where
-        view =
-          either (const page404) id
-            $ runRoute (Proxy :: Proxy Route) handlers current_uri model
+        view = either (const page404) id $
+            route (Proxy :: Proxy Route) handlers current_uri model
 
         handlers = catalogView :<|> threadView :<|> searchView
 
-mainUpdate :: Action -> Model -> Effect Action Model
+mainUpdate :: Action -> Model -> Effect Model Action ()
 mainUpdate NoAction m = noEff m
 mainUpdate (HaveLatest Client.Error) m = m <# do
     consoleLog "Getting Latest failed!"
@@ -280,7 +281,7 @@ mainUpdate (GridAction ga) m =
 
 mainUpdate (ClientAction action ca) m =
     Client.update (iClient action) ca (client_model m)
-    >>= \cm -> noEff (m { client_model = cm })
+    -- >>= \cm -> noEff (m { client_model = cm })
 
 mainUpdate (ThreadAction ta) model = do
     tm :: Maybe Thread.Model <- case thread_model model of

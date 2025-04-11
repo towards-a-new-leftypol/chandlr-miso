@@ -39,8 +39,8 @@ update
     -> Action b
     -> Model
     -> Effect Model a ()
-update iface (Connect (abort, resultVar)) m = effectSub m $
-    \sink -> do
+update iface (Connect (_, resultVar)) m =
+    effectSub m $ \sink -> do
         ctx <- askJSM
 
         void $ liftIO $ forkIO $ do

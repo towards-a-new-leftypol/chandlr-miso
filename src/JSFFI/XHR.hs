@@ -55,7 +55,7 @@ setRequestHeader (XMLHttpRequest xhr) k v = do
 
 open :: XMLHttpRequest -> JSString -> JSString -> JSM ()
 open (XMLHttpRequest xhr) method url = do
-    _ <- xhr # ("setRequestHeader" :: JSString) $ ([ method, url ])
+    _ <- xhr # ("open" :: JSString) $ ([ method, url ])
     return ()
 
 
