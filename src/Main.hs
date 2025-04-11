@@ -36,11 +36,10 @@ import Miso
     --, getCurrentURI
     )
 import Miso.String (MisoString, toMisoString)
--- import GHCJS.DOM.Types (toJSString, fromJSString, Element, JSString)
--- import GHCJS.DOM.ParentNode (querySelector)
 -- import GHCJS.DOM.Element (getAttribute)
 import Servant.API
 import Data.Aeson (decodeStrict, FromJSON)
+import Control.Monad.IO.Class (liftIO)
 
 import Common.FrontEnd.Action
 import Common.FrontEnd.Routes
@@ -57,7 +56,11 @@ import Common.FrontEnd.Interfaces
 import Common.Network.CatalogPostType (CatalogPost)
 import JSFFI.Saddle
     ( getDocument
-    , Element
+    , Element (..)
+    , Document (..)
+    , ParentNode (..)
+    , querySelector
+    , getAttribute
     )
 
 data InitialData
@@ -141,15 +144,14 @@ initialModel pgroot client_fetch_count media_root u t smv = Model
 
 getMetadata :: MisoString -> JSM (Maybe MisoString)
 getMetadata key = do
-    doc <- getDocument
+    doc <- (\(Document d) -> ParentNode d) <$> getDocument
 
-    mElem :: Maybe Element <- case doc of
-        Nothing -> return Nothing
-        Just d -> querySelector d $ "meta[name='" <> key <> "']"
+    mElem :: Maybe Element <- querySelector doc $ "meta[name='" <> key <> "']"
 
     case mElem of
         Nothing -> return Nothing
-        Just el -> getAttribute el ("content" :: MisoString)
+        Just (Element el) ->
+            (toMisoString <$>) <$> getAttribute el ("content" :: MisoString)
 
 
 #if defined(wasm32_HOST_ARCH)
@@ -173,7 +175,7 @@ mainMain = do
     media_root <- getMetadata "media-root" >>=
         return . maybe "undefined" id
 
-    now <- getCurrentTime
+    now <- liftIO getCurrentTime
 
     -- uri <- getCurrentURI
 
@@ -185,7 +187,7 @@ mainMain = do
     --
     --      - to use this, need to pass in a Model
 
-    search_var <- newEmptyMVar
+    search_var <- liftIO newEmptyMVar
 
     miso $ \uri ->
             let initial_model = initialModel
@@ -202,7 +204,7 @@ mainMain = do
                     , view          = mainView
                     , subs          = [ uriSub ChangeURI ]
                     , events        = defaultEvents
-                    , initialAction = NoAction --initialActionFromRoute initial_model uri
+                    , initialAction = Just NoAction --initialActionFromRoute initial_model uri
                     , mountPoint    = Nothing
                     , logLevel      = Off
                     }
@@ -281,12 +283,12 @@ mainUpdate (GridAction ga) m =
 
 mainUpdate (ClientAction action ca) m =
     Client.update (iClient action) ca (client_model m)
-    -- >>= \cm -> noEff (m { client_model = cm })
+    >>= \cm -> noEff (m { client_model = cm })
 
 mainUpdate (ThreadAction ta) model = do
     tm :: Maybe Thread.Model <- case thread_model model of
         Nothing -> noEff Nothing
-        Just m -> Thread.update iThread ta m >>= return . Just
+        Just m -> Thread.update iThread ta m
 
     noEff model { thread_model = tm }
 

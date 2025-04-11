@@ -2,10 +2,11 @@
 
 module JSFFI.Saddle
     ( Document (..)
-    , getDocument
-    , querySelector
     , Element (..)
     , ParentNode (..)
+    , getDocument
+    , querySelector
+    , getAttribute
     ) where
 
 import Language.Javascript.JSaddle
@@ -24,6 +25,10 @@ newtype ParentNode = ParentNode JSVal
 getDocument :: JSM Document
 getDocument = Document <$> jsg "document"
 
-querySelector :: ParentNode -> JSString -> JSM (Maybe JSVal)
+querySelector :: ParentNode -> JSString -> JSM (Maybe Element)
 querySelector (ParentNode n) s =
-    (n # "querySelector" $ [s]) >>= maybeNullOrUndefined
+    (Element <$>) <$> ((n # "querySelector" $ [s]) >>= maybeNullOrUndefined)
+
+getAttribute :: JSVal -> JSString -> JSM (Maybe JSVal)
+getAttribute x attr =
+    (x # "getAttribute" $ [attr]) >>= maybeNullOrUndefined
