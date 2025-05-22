@@ -277,10 +277,6 @@ mainUpdate (ChangeURI uri) m = m { current_uri = uri } <# do
     consoleLog $ "ChangeURI! " `append` (pack $ show $ uri)
     return NoAction
 
-mainUpdate (GridAction ga) m =
-    Grid.update iGrid ga (grid_model m)
-    >>= \gm -> noEff (m { grid_model = gm })
-
 mainUpdate (ClientAction action ca) m =
     Client.update (iClient action) ca (client_model m)
     >>= \cm -> noEff (m { client_model = cm })

@@ -23,12 +23,12 @@ newtype Element = Element JSVal
 newtype ParentNode = ParentNode JSVal
 
 getDocument :: JSM Document
-getDocument = Document <$> jsg "document"
+getDocument = Document <$> jsg ("document" :: JSString)
 
 querySelector :: ParentNode -> JSString -> JSM (Maybe Element)
 querySelector (ParentNode n) s =
-    (Element <$>) <$> ((n # "querySelector" $ [s]) >>= maybeNullOrUndefined)
+    (Element <$>) <$> ((n # ("querySelector" :: JSString) $ [s]) >>= maybeNullOrUndefined)
 
 getAttribute :: JSVal -> JSString -> JSM (Maybe JSVal)
 getAttribute x attr =
-    (x # "getAttribute" $ [attr]) >>= maybeNullOrUndefined
+    (x # ("getAttribute" :: JSString) $ [attr]) >>= maybeNullOrUndefined

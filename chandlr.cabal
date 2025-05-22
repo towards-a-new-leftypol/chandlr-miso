@@ -64,19 +64,6 @@ executable chandlr
         ghc-options:
             -no-hs-main -optl-mexec-model=reactor "-optl-Wl,--export=hs_start"
 
-    if impl(ghcjs) || arch(javascript)
-        cpp-options:
-          -DGHCJS_BOTH
-    if impl(ghcjs)
-        cpp-options:
-          -DGHCJS_OLD
-    elif arch(javascript)
-        cpp-options:
-          -DGHCJS_NEW
-    elif arch(wasm32)
-        cpp-options:
-          -DWASM
-
     ghcjs-options:    -dedupe
 
     -- Modules included in this executable, other than Main.
@@ -92,6 +79,7 @@ executable chandlr
             Common.Component.Thread.Model
             Common.Component.ThreadView
             Common.Component.TimeControl
+            Common.FrontEnd.MainComponent
             Common.FrontEnd.Action
             Common.FrontEnd.Interfaces
             Common.FrontEnd.Model
@@ -133,7 +121,8 @@ executable chandlr
                        ghc-experimental,
                        jsaddle,
                        html-parse,
-                       miso
+                       miso,
+                       mtl
 
     -- Directories containing source files.
     hs-source-dirs:   src
