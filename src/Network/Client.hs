@@ -1,7 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE RecordWildCards #-}
 
 module Network.Client
@@ -10,11 +8,9 @@ module Network.Client
     , Http.HttpResult (..)
     , Action (..)
     , Interface (..)
-    , fetchLatest
-    , getThread
     , Model (..)
     , update
-    , search
+    , app
     ) where
 
 import Control.Monad (void)
@@ -22,61 +18,49 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
 import Data.Aeson (ToJSON, FromJSON)
-import Data.Time.Clock (UTCTime)
+import Control.Monad.State (get)
+import GHC.TypeLits (KnownSymbol)
 
-import Miso (effectSub, Effect, JSM)
+import Miso (withSink, Effect, JSM, io_, notify, Component, text)
+import qualified Miso as M
 import Miso.String (MisoString, toMisoString)
 import Language.Javascript.JSaddle.Monad (askJSM, runJSaddle)
 
 import qualified Network.Http as Http
-import Common.Network.CatalogPostType (CatalogPost)
-import Common.Network.SiteType (Site)
-import qualified Common.FrontEnd.Action as A
 import Common.Network.ClientTypes
+import qualified Common.FrontEnd.Action as A
 
-update
-    :: Interface a b
-    -> Action b
-    -> Model
-    -> Effect Model a ()
-update iface (Connect (_, resultVar)) m =
-    effectSub m $ \sink -> do
+awaitResult
+    :: KnownSymbol n
+    => Interface n m a b
+    -> Http.HttpActionResult b
+    -> Effect Model (Action n m a b)
+awaitResult iface (_, resultVar) = do
+    io_ $ do
         ctx <- askJSM
 
         void $ liftIO $ forkIO $ do
             result :: Http.HttpResult b <- takeMVar resultVar
-            runJSaddle ctx $ sink $ (returnResult iface) result
+            --runJSaddle ctx $ sink $ (returnResult iface) result
+            runJSaddle ctx $
+                notify (notifyComponent iface) $ (returnResult iface) result
 
-http_
-    :: (ToJSON c, FromJSON b)
-    => Model
-    -> Interface a b
-    -> MisoString
-    -> Http.HttpMethod
-    -> Maybe c
-    -> JSM a
-http_ m iface api_path method payload =
-    Http.http
-        (pgApiRoot m <> api_path)
-        method
-        [("Content-Type", "application/json")]
-        payload
-    >>= return . (passAction iface) . Connect
+update :: (FromJSON b, KnownSymbol n) => Action n m a b -> Effect Model (Action n m a b)
+update (Connect iface actionResult) = awaitResult iface actionResult
+update (FetchLatest t iface) = do
+    model <- get
 
-
-fetchLatest :: Model -> UTCTime -> Interface a [ CatalogPost ] -> JSM a
-fetchLatest m t iface = do
     let payload = Just $ FetchCatalogArgs
             { max_time = t
-            , max_row_read = fetchCount m
+            , max_row_read = fetchCount model
             }
 
-    http_ m iface "/rpc/fetch_catalog" Http.POST payload
+    send iface $ http_ model "/rpc/fetch_catalog" Http.POST payload
 
+update (GetThread A.GetThreadArgs {..} iface) = do
+    model <- get
 
-getThread :: Model -> Interface a [ Site ] -> A.GetThreadArgs -> JSM a
-getThread m iface A.GetThreadArgs {..} =
-    http_ m iface path Http.GET (Nothing :: Maybe ())
+    send iface $ http_ model path Http.GET (Nothing :: Maybe ())
 
     where
         path = "/sites?"
@@ -86,10 +70,10 @@ getThread m iface A.GetThreadArgs {..} =
             <> "&boards.threads.board_thread_id=eq." <> toMisoString (show board_thread_id)
             <> "&boards.threads.posts.order=board_post_id.asc"
 
+update (Search query iface) = do
+    model <- get
 
-search :: Model -> MisoString -> Interface a [ CatalogPost ] -> JSM a
-search m query iface =
-    http_ m iface "/rpc/search_posts" Http.POST payload
+    send iface $ http_ model "/rpc/search_posts" Http.POST payload
 
     where
         payload = Just $ SearchPostsArgs
@@ -97,3 +81,35 @@ search m query iface =
             , max_rows = 100
             }
 
+send :: Interface n m a b -> JSM (Http.HttpActionResult b) -> Effect Model (Action n m a b)
+send iface action = withSink $ \sink ->
+                action
+                >>= sink . Connect iface
+
+http_
+    :: (ToJSON a, FromJSON b)
+    => Model
+    -> MisoString
+    -> Http.HttpMethod
+    -> Maybe a
+    -> JSM (Http.HttpActionResult b)
+http_ m apiPath method payload =
+    Http.http
+        (pgApiRoot m <> apiPath)
+        method
+        [("Content-Type", "application/json")]
+        payload
+
+
+app :: (FromJSON b, KnownSymbol n) => MisoString -> Int -> Component name Model (Action n m a b)
+app apiRoot fetchCount = M.Component
+    { M.model = Model apiRoot fetchCount
+    , M.update = update
+    , M.view = const $ text ""
+    , M.subs = []
+    , M.events = M.defaultEvents
+    , M.styles = []
+    , M.initialAction = Nothing
+    , M.mountPoint = Nothing
+    , M.logLevel = M.DebugAll
+    }
