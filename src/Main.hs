@@ -156,17 +156,19 @@ main = run mainMain
 
 mainMain :: JSM ()
 mainMain = do
-    consoleLog "Hello World!"
+    consoleLog "Haskell begin."
 
     pg_api_root <- getMetadata "postgrest-root" >>=
         return . maybe "http://localhost:3000" id
-    consoleLog pg_api_root
+    consoleLog $ "pg_api_root: " <> pg_api_root
 
     pg_fetch_count <- getMetadata "postgrest-fetch-count" >>=
         return . maybe 1000 (read . unpack)
 
     media_root <- getMetadata "media-root" >>=
         return . maybe "undefined" id
+
+    consoleLog $ "media_root: " <> media_root
 
     now <- liftIO getCurrentTime
 
@@ -212,8 +214,8 @@ mainView mc model = view
             route (Proxy :: Proxy Route) handlers current_uri model
 
         handlers
-            =    (catalogView tc undefined)
-            :<|> (threadView undefined)
+            =    (catalogView tc grid)
+            :<|> (threadView Thread.app)
             :<|> (searchView undefined)
 
         tc :: TC.TimeControl
@@ -222,6 +224,8 @@ mainView mc model = view
         timeCallback :: TC.TimeChangeCallback "main" Model Action
         timeCallback = (mc, GoToTime)
 
+        grid :: Grid.GridComponent
+        grid = Grid.app mc (media_root_ model)
 
 
 mainUpdate :: Action -> Effect Model Action
@@ -242,7 +246,7 @@ mainUpdate (HaveThread Client.Error) =
 mainUpdate (HaveThread (Client.HttpResponse {..})) =
     io_ $ do
         consoleLog "Have Thread!"
-        notify (Thread.app undefined undefined) $ Thread.RenderSite (head $ fromJust body)
+        notify Thread.app $ Thread.RenderSite (head $ fromJust body)
 
 mainUpdate (GoToTime t) = do
   modify (\m -> m { current_time = t })
