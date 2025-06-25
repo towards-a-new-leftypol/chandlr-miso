@@ -193,7 +193,7 @@ mainMain = do
     let app :: MainComponent = Component
             { model         = initial_model
             , update        = mainUpdate
-            , view          = mainView
+            , view          = mainView app
             , subs          = [ uriSub ChangeURI ]
             , events        = defaultEvents
             , styles = []
@@ -205,13 +205,24 @@ mainMain = do
     startComponent app
 
 
-mainView :: Model -> View Action
-mainView model = view
+mainView :: MainComponent -> Model -> View Action
+mainView mc model = view
     where
         view = either (const page404) id $
             route (Proxy :: Proxy Route) handlers current_uri model
 
-        handlers = (catalogView undefined undefined) :<|> (threadView undefined) :<|> (searchView undefined)
+        handlers
+            =    (catalogView tc undefined)
+            :<|> (threadView undefined)
+            :<|> (searchView undefined)
+
+        tc :: TC.TimeControl
+        tc = TC.app 0 timeCallback
+
+        timeCallback :: TC.TimeChangeCallback "main" Model Action
+        timeCallback = (mc, GoToTime)
+
+
 
 mainUpdate :: Action -> Effect Model Action
 mainUpdate (HaveLatest Client.Error) =
