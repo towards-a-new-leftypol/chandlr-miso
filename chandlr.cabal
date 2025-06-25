@@ -77,11 +77,10 @@ executable chandlr
             Common.Component.Thread.Files
             Common.Component.Thread.Intro
             Common.Component.Thread.Model
-            Common.Component.ThreadView
+            Common.Component.Thread
             Common.Component.TimeControl
             Common.FrontEnd.MainComponent
             Common.FrontEnd.Action
-            Common.FrontEnd.Interfaces
             Common.FrontEnd.Model
             Common.FrontEnd.Routes
             Common.FrontEnd.Views

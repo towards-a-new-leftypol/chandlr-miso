@@ -3,6 +3,7 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds #-}
 
 module Main where
 
@@ -20,39 +21,45 @@ import Data.JSString.Text (textFromJSString)
 import Miso
     ( View
     , miso
-    , App (..)
     , Effect
     , (<#)
     , noEff
     , defaultEvents
-    , LogLevel (Off)
+    , LogLevel (DebugAll)
     , URI
     , route
     , consoleLog
     , pushURI
     , uriSub
-    , JSM
     , run
-    --, getCurrentURI
+    , startComponent
+    , Component (..)
+    , getURI
+    , modify
+    , io_
+    , get
+    , put
+    , notify
     )
 import Miso.String (MisoString, toMisoString)
--- import GHCJS.DOM.Element (getAttribute)
 import Servant.API
 import Data.Aeson (decodeStrict, FromJSON)
 import Control.Monad.IO.Class (liftIO)
+import Language.Javascript.JSaddle (toJSString)
+import Language.Javascript.JSaddle.Monad (JSM)
 
 import Common.FrontEnd.Action
 import Common.FrontEnd.Routes
 import qualified Network.Client as Client
+import qualified Common.Network.ClientTypes as Client
 import qualified Common.Component.CatalogGrid as Grid
-import qualified Common.Component.ThreadView as Thread
+import qualified Common.Component.Thread as Thread
 import qualified Common.Component.TimeControl as TC
 import qualified Common.Component.Search.SearchTypes as Search
 import qualified Component.Search as Search
 import Common.Network.SiteType (Site)
 import Common.FrontEnd.Views
 import Common.FrontEnd.Model
-import Common.FrontEnd.Interfaces
 import Common.Network.CatalogPostType (CatalogPost)
 import JSFFI.Saddle
     ( getDocument
@@ -68,6 +75,8 @@ data InitialData
     | SearchData [ CatalogPost ]
     | ThreadData Site
     | Nil
+
+type MainComponent = Component "main" Model Action
 
 parseInitialDataUsingRoute :: Model -> URI -> MisoString -> InitialData
 parseInitialDataUsingRoute model uri raw_json = either (const Nil) id routing_result
@@ -104,8 +113,8 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
         h_search :: Maybe Text -> Model -> Action
         h_search Nothing m = GoToTime $ current_time m
         h_search (Just search_query) m
-            | Search.searchTerm (search_model m) == unescaped_search_query = SearchResults unescaped_search_query
-            | otherwise = (Search.passAction iSearch) $ Search.ChangeAndSubmit unescaped_search_query
+            | searchTerm m == unescaped_search_query = SearchResults unescaped_search_query
+            | otherwise = NotifySearch $ Search.ChangeAndSubmit unescaped_search_query
 
             where
                 unescaped_search_query = toMisoString $ unEscapeString $ T.unpack search_query
@@ -120,26 +129,10 @@ initialModel
     -> MVar MisoString
     -> Model
 initialModel pgroot client_fetch_count media_root u t smv = Model
-    { grid_model = Grid.initialModel media_root
-    , client_model = client_model_
-    , thread_model = Nothing
-    , current_uri = u
+    { current_uri = u
     , media_root_ = media_root
     , current_time = t
-    , tc_model = TC.initialModel 0
-    , search_model = Search.Model
-        { Search.searchTerm = ""
-        , Search.searchVar = smv
-        , Search.clientModel = client_model_
-        , Search.displayResults = []
-        }
     }
-
-    where
-      client_model_ = Client.Model
-        { Client.pgApiRoot = pgroot
-        , Client.fetchCount = client_fetch_count
-        }
 
 
 getMetadata :: MisoString -> JSM (Maybe MisoString)
@@ -151,7 +144,7 @@ getMetadata key = do
     case mElem of
         Nothing -> return Nothing
         Just (Element el) ->
-            (toMisoString <$>) <$> getAttribute el ("content" :: MisoString)
+            (toJSString <$>) <$> getAttribute el ("content" :: MisoString)
 
 
 #if defined(wasm32_HOST_ARCH)
@@ -177,7 +170,7 @@ mainMain = do
 
     now <- liftIO getCurrentTime
 
-    -- uri <- getCurrentURI
+    uri <- getURI
 
     initial_data <- getMetadata "initial-data" >>= return . maybe "" id
 
@@ -189,35 +182,28 @@ mainMain = do
 
     search_var <- liftIO newEmptyMVar
 
-    miso $ \uri ->
-            let initial_model = initialModel
-                  pg_api_root
-                  pg_fetch_count
-                  media_root
-                  uri
-                  now
-                  search_var
-            in
-                App
-                    { model         = parseInitialData initial_model uri initial_data
-                    , update        = mainUpdate
-                    , view          = mainView
-                    , subs          = [ uriSub ChangeURI ]
-                    , events        = defaultEvents
-                    , initialAction = Just NoAction --initialActionFromRoute initial_model uri
-                    , mountPoint    = Nothing
-                    , logLevel      = Off
-                    }
+    let initial_model = initialModel
+          pg_api_root
+          pg_fetch_count
+          media_root
+          uri
+          now
+          search_var
 
-    where
-        parseInitialData :: Model -> URI -> MisoString -> Model
-        parseInitialData m uri json_str = applyInitialData m initial_data
-            where
-                applyInitialData :: Model -> InitialData -> Model
-                applyInitialData model (CatalogData posts) =
-                    model { grid_model = Grid.Model posts (media_root_ model) }
+    let app :: MainComponent = Component
+            { model         = initial_model
+            , update        = mainUpdate
+            , view          = mainView
+            , subs          = [ uriSub ChangeURI ]
+            , events        = defaultEvents
+            , styles = []
+            , initialAction = Nothing -- initialActionFromRoute initial_model uri
+            , mountPoint    = Nothing
+            , logLevel      = DebugAll
+            }
 
-                initial_data = parseInitialDataUsingRoute m uri json_str
+    startComponent app
+
 
 mainView :: Model -> View Action
 mainView model = view
@@ -225,85 +211,76 @@ mainView model = view
         view = either (const page404) id $
             route (Proxy :: Proxy Route) handlers current_uri model
 
-        handlers = catalogView :<|> threadView :<|> searchView
+        handlers = (catalogView undefined undefined) :<|> (threadView undefined) :<|> (searchView undefined)
 
-mainUpdate :: Action -> Model -> Effect Model Action ()
-mainUpdate NoAction m = noEff m
-mainUpdate (HaveLatest Client.Error) m = m <# do
-    consoleLog "Getting Latest failed!"
-    return NoAction
+mainUpdate :: Action -> Effect Model Action
+mainUpdate (HaveLatest Client.Error) =
+    io_ $ consoleLog "Getting Latest failed!"
 
-mainUpdate (HaveLatest (Client.HttpResponse {..})) m = m <#
+mainUpdate (HaveLatest (Client.HttpResponse {..})) =
     case body of
-        Nothing -> do
+        Nothing -> io_ $
             consoleLog "Didn't get anything back from API"
-            return NoAction
-        Just posts -> do
+        Just posts -> io_ $
             -- mapM_ (consoleLog . toJSString . show) posts
-            return $ GridAction $ Grid.DisplayItems posts
+            notify (Grid.app undefined undefined) $ Grid.DisplayItems posts
 
-mainUpdate (HaveThread Client.Error) m = m <# do
-    consoleLog "Getting Thread failed!"
-    return NoAction
+mainUpdate (HaveThread Client.Error) =
+    io_ $ consoleLog "Getting Thread failed!"
 
-mainUpdate (HaveThread (Client.HttpResponse {..})) m = new_model <# do
-    consoleLog "Have Thread!"
-    return $ ThreadAction $ Thread.RenderSite $ Thread.site $ fromJust $ thread_model new_model
+mainUpdate (HaveThread (Client.HttpResponse {..})) =
+    io_ $ do
+        consoleLog "Have Thread!"
+        notify (Thread.app undefined undefined) $ Thread.RenderSite (head $ fromJust body)
+
+mainUpdate (GoToTime t) = do
+  modify (\m -> m { current_time = t })
+  io_ $ notify Client.app (iface, Client.FetchLatest t)
+
+  where
+    iface :: Client.Interface "main" Model Action [ CatalogPost ]
+    iface = Client.Interface HaveLatest (undefined :: MainComponent)
+
+mainUpdate (GetThread GetThreadArgs {..}) = do
+    io_ $ consoleLog $ "Thread " `append` (pack $ show $ board_thread_id)
+
+    model <- get
+
+    io_ $ do
+        pushURI $ new_current_uri model
+        notify Client.app (iface, Client.GetThread GetThreadArgs {..})
 
     where
-        new_model = m
-            { thread_model =
-                body >>= Just . (Thread.initialModel $ media_root_ m) . head
-            }
+        iface :: Client.Interface "main" Model Action [ Site ]
+        iface = Client.Interface HaveThread (undefined :: MainComponent)
 
-mainUpdate (GoToTime t) m = m { current_time = t } <# do
-  Client.fetchLatest (client_model m) t (iClient HaveLatest)
-
-mainUpdate (GetThread GetThreadArgs {..}) m = m <# do
-    consoleLog $ "Thread " `append` (pack $ show $ board_thread_id)
-    pushURI new_current_uri
-    Client.getThread (client_model m) (iClient HaveThread) GetThreadArgs {..}
-
-    where
-        new_current_uri :: URI
-        new_current_uri = (current_uri m)
+        new_current_uri :: Model -> URI
+        new_current_uri m = (current_uri m)
             { uriPath = T.unpack website
                     </> T.unpack board_pathpart
                     </> show board_thread_id
             , uriQuery = ""
             }
 
-mainUpdate (ChangeURI uri) m = m { current_uri = uri } <# do
-    consoleLog $ "ChangeURI! " `append` (pack $ show $ uri)
-    return NoAction
+mainUpdate (ChangeURI uri) = do
+    modify (\m -> m { current_uri = uri })
+    io_ $ consoleLog $ "ChangeURI! " `append` (pack $ show $ uri)
 
-mainUpdate (ClientAction action ca) m =
-    Client.update (iClient action) ca (client_model m)
-    >>= \cm -> noEff (m { client_model = cm })
 
-mainUpdate (ThreadAction ta) model = do
-    tm :: Maybe Thread.Model <- case thread_model model of
-        Nothing -> noEff Nothing
-        Just m -> Thread.update iThread ta m
+mainUpdate (SearchResults query) = do
+    model <- get
 
-    noEff model { thread_model = tm }
+    let new_uri :: URI = new_current_uri model
 
-mainUpdate (TimeAction ta) m =
-  TC.update iTime ta (tc_model m)
-  >>= \tm -> noEff m { tc_model = tm }
+    io_ $ do
+        consoleLog $ "SearchResults new uri: " <> (pack $ show $ new_uri)
+        pushURI new_uri
 
-mainUpdate (SearchAction sa) m =
-  Search.update iSearch sa (search_model m)
-  >>= \sm -> noEff m { search_model = sm }
-
-mainUpdate (SearchResults query) m = m { current_uri = new_current_uri } <# do
-    consoleLog $ "SearchResults new uri: " <> (pack $ show new_current_uri)
-    pushURI new_current_uri
-    return NoAction
+    put model { current_uri = new_uri }
 
     where
-        new_current_uri :: URI
-        new_current_uri = (current_uri m)
+        new_current_uri :: Model -> URI
+        new_current_uri m = (current_uri m)
             { uriPath = "/search"
             , uriQuery = "?search=" ++ (escapeURIString isAllowedInURI $ unpack query)
             }

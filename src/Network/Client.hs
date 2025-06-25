@@ -1,12 +1,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DataKinds #-}
 
 module Network.Client
     ( Http.HttpActionResult
     , Http.HttpMethod (..)
     , Http.HttpResult (..)
-    , Action (..)
+    , Action
+    , ActionVerb (..)
     , Interface (..)
     , Model (..)
     , update
@@ -21,10 +23,11 @@ import Data.Aeson (ToJSON, FromJSON)
 import Control.Monad.State (get)
 import GHC.TypeLits (KnownSymbol)
 
-import Miso (withSink, Effect, JSM, io_, notify, Component, text)
+import Miso (withSink, Effect, io_, notify, Component, text)
 import qualified Miso as M
 import Miso.String (MisoString, toMisoString)
 import Language.Javascript.JSaddle.Monad (askJSM, runJSaddle)
+import Language.Javascript.JSaddle.Monad (JSM)
 
 import qualified Network.Http as Http
 import Common.Network.ClientTypes
@@ -46,8 +49,8 @@ awaitResult iface (_, resultVar) = do
                 notify (notifyComponent iface) $ (returnResult iface) result
 
 update :: (FromJSON b, KnownSymbol n) => Action n m a b -> Effect Model (Action n m a b)
-update (Connect iface actionResult) = awaitResult iface actionResult
-update (FetchLatest t iface) = do
+update (iface, Connect actionResult) = awaitResult iface actionResult
+update (iface, FetchLatest t) = do
     model <- get
 
     let payload = Just $ FetchCatalogArgs
@@ -57,7 +60,7 @@ update (FetchLatest t iface) = do
 
     send iface $ http_ model "/rpc/fetch_catalog" Http.POST payload
 
-update (GetThread A.GetThreadArgs {..} iface) = do
+update (iface, GetThread A.GetThreadArgs {..}) = do
     model <- get
 
     send iface $ http_ model path Http.GET (Nothing :: Maybe ())
@@ -70,7 +73,7 @@ update (GetThread A.GetThreadArgs {..} iface) = do
             <> "&boards.threads.board_thread_id=eq." <> toMisoString (show board_thread_id)
             <> "&boards.threads.posts.order=board_post_id.asc"
 
-update (Search query iface) = do
+update (iface, Search query) = do
     model <- get
 
     send iface $ http_ model "/rpc/search_posts" Http.POST payload
@@ -81,10 +84,14 @@ update (Search query iface) = do
             , max_rows = 100
             }
 
-send :: Interface n m a b -> JSM (Http.HttpActionResult b) -> Effect Model (Action n m a b)
-send iface action = withSink $ \sink ->
-                action
-                >>= sink . Connect iface
+send
+    :: Interface n m a b
+    -> JSM (Http.HttpActionResult b)
+    -> Effect Model (Action n m a b)
+send iface action =
+    withSink $ \sink ->
+        action
+        >>= sink . ((,) iface) . Connect
 
 http_
     :: (ToJSON a, FromJSON b)
@@ -101,9 +108,9 @@ http_ m apiPath method payload =
         payload
 
 
-app :: (FromJSON b, KnownSymbol n) => MisoString -> Int -> Component name Model (Action n m a b)
-app apiRoot fetchCount = M.Component
-    { M.model = Model apiRoot fetchCount
+app :: (FromJSON b, KnownSymbol n) => Component "http-client" Model (Action n m a b)
+app = M.Component
+    { M.model = Uninitialized
     , M.update = update
     , M.view = const $ text ""
     , M.subs = []

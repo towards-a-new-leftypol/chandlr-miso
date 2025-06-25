@@ -1,68 +1,83 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DataKinds #-}
 
 module Component.Search
 ( view
-, Interface (..)
 , update
 , Model (..)
 , Action (..)
+, app
 ) where
 
 import Miso
   ( Effect
-  , (<#)
   , consoleLog
-  , noEff
+  , Component
+  , defaultEvents
+  , modify
+  , issue
+  , io_
+  , get
+  , notify
   )
-import Control.Monad.IO.Class (liftIO)
-import Control.Concurrent.MVar (tryTakeMVar, takeMVar, putMVar, swapMVar)
+import qualified Miso as M
 import Miso.String (toMisoString)
 
 import Common.Network.HttpTypes (HttpResult (..))
 import Common.Component.Search.SearchTypes
 import Common.Component.Search.View
 import qualified Network.Client as Client
+import Common.Network.CatalogPostType (CatalogPost)
 
-update :: Interface a -> Action -> Model -> Effect Model a ()
-update iface (SearchChange q) model = model { searchTerm = q } <# do
-    consoleLog $ "SearchChange " <> q
 
-    liftIO $ do
-        m_search_query <- tryTakeMVar (searchVar model)
+update :: Action -> Effect Model Action
+update (SearchChange q) =
+    modify (\m -> m { searchTerm = q })
 
-        case m_search_query of
-            Nothing -> putMVar (searchVar model) q
-            Just _ -> swapMVar (searchVar model) q >> return ()
+update OnSubmit = do
+    model <- get
 
-        return $ (passAction iface) NoAction
+    let search_query = searchTerm model
 
-update iface OnSubmit model = model <# do
-    search_query <- liftIO $ takeMVar (searchVar model)
-    consoleLog $ "Submit! " <> search_query
-    Client.search (clientModel model) search_query (clientIface iface)
+    io_ $ do
+        consoleLog $ "Submit! " <> search_query
+        notify Client.app (clientInterface, Client.Search search_query)
 
-update iface (ChangeAndSubmit search_query) model = model { searchTerm = search_query } <# do
-    _ <- liftIO $ liftIO $ swapMVar (searchVar model) search_query
-    return $ (passAction iface) OnSubmit
+update (ChangeAndSubmit search_query) = do
+    issue $ SearchChange search_query
+    issue $ OnSubmit
 
-update iface (SearchResult result) model = model <# do
-    consoleLog $ "Received search results!"
+update (SearchResult result) = do
+    io_ $ consoleLog $ "Received search results!"
 
     case result of
-        Error -> do
-            consoleLog $ "Error!"
-            return $ passAction iface $ PassPostsToSelf []
+        Error -> io_ $ consoleLog "Error!"
 
         HttpResponse {..} -> do
-            consoleLog $ (toMisoString $ show $ status_code) <> " " <> (toMisoString $ status_text)
-            consoleLog $ (toMisoString $ show $ body)
+            io_ $ do
+                consoleLog $ (toMisoString $ show $ status_code) <> " " <> (toMisoString $ status_text)
+                consoleLog $ (toMisoString $ show $ body)
 
             case body of
-                Just catlg_posts -> return $ passAction iface $ PassPostsToSelf catlg_posts
-                Nothing -> return $ passAction iface $ PassPostsToSelf []
+                Just search_results ->
+                    modify (\m -> m { displayResults = search_results })
+                Nothing -> return ()
 
-update iface (PassPostsToSelf search_results) model = model { displayResults = search_results } <#
-    (return $ (searchResults iface) (searchTerm model))
 
-update _ NoAction m = noEff m
+clientInterface :: Client.Interface "search" Model Action [ CatalogPost ]
+clientInterface = Client.Interface SearchResult app
+
+
+app :: Component "search" Model Action
+app = M.Component
+    { M.model = Model "" []
+    , M.update = update
+    , M.view = view
+    , M.subs = []
+    , M.events = defaultEvents
+    , M.styles = []
+    , M.initialAction = Nothing
+    , M.mountPoint = Nothing
+    , M.logLevel = M.DebugAll
+    }

@@ -18,7 +18,8 @@ import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrictText)
 import Data.Aeson.Text (encodeToLazyText)
 import Data.JSString.Text (textToJSString)
 import Miso.String (MisoString, toMisoString, fromMisoString)
-import Miso (consoleLog, JSM)
+import Miso (consoleLog)
+import Language.Javascript.JSaddle.Monad (JSM)
 
 import Common.Network.HttpTypes
 import JSFFI.XHR
