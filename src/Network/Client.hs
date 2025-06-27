@@ -2,6 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Network.Client
     ( Http.HttpActionResult
@@ -10,6 +11,7 @@ module Network.Client
     , Action
     , ActionVerb (..)
     , Interface (..)
+    , SomeInterface (..)
     , Model (..)
     , update
     , app
@@ -21,7 +23,7 @@ import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
 import Data.Aeson (ToJSON, FromJSON)
 import Control.Monad.State (get)
-import GHC.TypeLits (KnownSymbol)
+import Data.Typeable (Typeable, cast)
 
 import Miso (withSink, Effect, io_, notify, Component, text)
 import qualified Miso as M
@@ -34,23 +36,27 @@ import Common.Network.ClientTypes
 import qualified Common.FrontEnd.Action as A
 
 awaitResult
-    :: KnownSymbol n
-    => Interface n m a b
-    -> Http.HttpActionResult b
-    -> Effect Model (Action n m a b)
-awaitResult iface (_, resultVar) = do
-    io_ $ do
-        ctx <- askJSM
+    :: Typeable a
+    => SomeInterface
+    -> Http.HttpActionResult a
+    -> Effect Model Action
+awaitResult (SomeInterface (Interface { returnResult, notifyComponent })) actionResult =
+    case cast actionResult of
+        Just ((_, resultVar) :: Http.HttpActionResult a) ->
+            io_ $ do
+                ctx <- askJSM
 
-        void $ liftIO $ forkIO $ do
-            result :: Http.HttpResult b <- takeMVar resultVar
-            --runJSaddle ctx $ sink $ (returnResult iface) result
-            runJSaddle ctx $
-                notify (notifyComponent iface) $ (returnResult iface) result
+                void $ liftIO $ forkIO $ do
+                    result :: Http.HttpResult b <- takeMVar resultVar
+                    --runJSaddle ctx $ sink $ (returnResult iface) result
+                    runJSaddle ctx $
+                        notify notifyComponent $ returnResult result
+        Nothing ->
+            error "Client encountered unexpected type error"
 
-update :: (FromJSON b, KnownSymbol n) => Action n m a b -> Effect Model (Action n m a b)
+update :: Action -> Effect Model Action
 update (iface, Connect actionResult) = awaitResult iface actionResult
-update (iface, FetchLatest t) = do
+update (SomeInterface iface, FetchLatest t) = do
     model <- get
 
     let payload = Just $ FetchCatalogArgs
@@ -58,9 +64,9 @@ update (iface, FetchLatest t) = do
             , max_row_read = fetchCount model
             }
 
-    send iface $ http_ model "/rpc/fetch_catalog" Http.POST payload
+    send iface $ (http_ model "/rpc/fetch_catalog" Http.POST payload)
 
-update (iface, GetThread A.GetThreadArgs {..}) = do
+update (SomeInterface iface, GetThread A.GetThreadArgs {..}) = do
     model <- get
 
     send iface $ http_ model path Http.GET (Nothing :: Maybe ())
@@ -73,7 +79,7 @@ update (iface, GetThread A.GetThreadArgs {..}) = do
             <> "&boards.threads.board_thread_id=eq." <> toMisoString (show board_thread_id)
             <> "&boards.threads.posts.order=board_post_id.asc"
 
-update (iface, Search query) = do
+update (SomeInterface iface, Search query) = do
     model <- get
 
     send iface $ http_ model "/rpc/search_posts" Http.POST payload
@@ -85,13 +91,14 @@ update (iface, Search query) = do
             }
 
 send
-    :: Interface n m a b
-    -> JSM (Http.HttpActionResult b)
-    -> Effect Model (Action n m a b)
+    :: forall a. (FromJSON a, Typeable a)
+    => Interface a
+    -> JSM (Http.HttpActionResult a)
+    -> Effect Model Action
 send iface action =
     withSink $ \sink ->
         action
-        >>= sink . ((,) iface) . Connect
+        >>= sink . ((,) (SomeInterface iface)) . Connect
 
 http_
     :: (ToJSON a, FromJSON b)
@@ -108,7 +115,7 @@ http_ m apiPath method payload =
         payload
 
 
-app :: (FromJSON b, KnownSymbol n) => Component "http-client" Model (Action n m a b)
+app :: Component "http-client" Model Action
 app = M.Component
     { M.model = Uninitialized
     , M.update = update

@@ -65,8 +65,8 @@ update (SearchResult result) = do
                 Nothing -> return ()
 
 
-clientInterface :: Client.Interface "search" Model Action [ CatalogPost ]
-clientInterface = Client.Interface SearchResult app
+clientInterface :: Client.SomeInterface
+clientInterface = Client.SomeInterface (Client.Interface SearchResult app)
 
 
 app :: Component "search" Model Action

@@ -19,7 +19,7 @@ import Control.Concurrent.MVar (MVar, newEmptyMVar)
 import Data.JSString (pack, append, unpack)
 import Data.JSString.Text (textFromJSString)
 import Miso
-    ( View
+    ( View (..)
     , miso
     , Effect
     , (<#)
@@ -40,6 +40,7 @@ import Miso
     , get
     , put
     , notify
+    , component_
     )
 import Miso.String (MisoString, toMisoString)
 import Servant.API
@@ -113,7 +114,7 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
         h_search :: Maybe Text -> Model -> Action
         h_search Nothing m = GoToTime $ current_time m
         h_search (Just search_query) m
-            | searchTerm m == unescaped_search_query = SearchResults unescaped_search_query
+            | search_term m == unescaped_search_query = SearchResults unescaped_search_query
             | otherwise = NotifySearch $ Search.ChangeAndSubmit unescaped_search_query
 
             where
@@ -132,6 +133,7 @@ initialModel pgroot client_fetch_count media_root u t smv = Model
     { current_uri = u
     , media_root_ = media_root
     , current_time = t
+    , search_term = ""
     }
 
 
@@ -199,12 +201,16 @@ mainMain = do
             , subs          = [ uriSub ChangeURI ]
             , events        = defaultEvents
             , styles = []
-            , initialAction = Nothing -- initialActionFromRoute initial_model uri
+            , initialAction = Just $ initialActionFromRoute initial_model uri
             , mountPoint    = Nothing
             , logLevel      = DebugAll
             }
 
     startComponent app
+
+
+appendHttpClient :: View Action -> View Action
+appendHttpClient (VNode a b cs ds) = VNode a b cs (component_ Client.app [] : ds)
 
 
 mainView :: MainComponent -> Model -> View Action
@@ -216,7 +222,7 @@ mainView mc model = view
         handlers
             =    (catalogView tc grid)
             :<|> (threadView Thread.app)
-            :<|> (searchView undefined)
+            :<|> (searchView grid)
 
         tc :: TC.TimeControl
         tc = TC.app 0 timeCallback
@@ -253,8 +259,9 @@ mainUpdate (GoToTime t) = do
   io_ $ notify Client.app (iface, Client.FetchLatest t)
 
   where
-    iface :: Client.Interface "main" Model Action [ CatalogPost ]
-    iface = Client.Interface HaveLatest (undefined :: MainComponent)
+    iface :: Client.SomeInterface
+    iface = Client.SomeInterface $
+        Client.Interface HaveLatest (undefined :: MainComponent)
 
 mainUpdate (GetThread GetThreadArgs {..}) = do
     io_ $ consoleLog $ "Thread " `append` (pack $ show $ board_thread_id)
@@ -266,8 +273,9 @@ mainUpdate (GetThread GetThreadArgs {..}) = do
         notify Client.app (iface, Client.GetThread GetThreadArgs {..})
 
     where
-        iface :: Client.Interface "main" Model Action [ Site ]
-        iface = Client.Interface HaveThread (undefined :: MainComponent)
+        iface :: Client.SomeInterface
+        iface = Client.SomeInterface $
+            Client.Interface HaveThread (undefined :: MainComponent)
 
         new_current_uri :: Model -> URI
         new_current_uri m = (current_uri m)
