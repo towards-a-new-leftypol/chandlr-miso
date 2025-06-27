@@ -8,11 +8,11 @@
 module Main where
 
 import Data.Proxy
-import Data.Maybe (maybe, fromJust)
+import Data.Maybe (fromJust)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 import qualified Data.Text as T
-import Network.URI (uriPath, uriQuery, escapeURIString, unEscapeString, isAllowedInURI)
+import Network.URI (escapeURIString, unEscapeString, isAllowedInURI)
 import System.FilePath ((</>))
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import Control.Concurrent.MVar (MVar, newEmptyMVar)
@@ -20,13 +20,9 @@ import Data.JSString (pack, append, unpack)
 import Data.JSString.Text (textFromJSString)
 import Miso
     ( View (..)
-    , miso
     , Effect
-    , (<#)
-    , noEff
     , defaultEvents
     , LogLevel (DebugAll)
-    , URI
     , route
     , consoleLog
     , pushURI
@@ -53,11 +49,10 @@ import Common.FrontEnd.Action
 import Common.FrontEnd.Routes
 import qualified Network.Client as Client
 import qualified Common.Network.ClientTypes as Client
-import qualified Common.Component.CatalogGrid as Grid
 import qualified Common.Component.Thread as Thread
 import qualified Common.Component.TimeControl as TC
 import qualified Common.Component.Search.SearchTypes as Search
-import qualified Component.Search as Search
+import qualified Common.Component.CatalogGrid as Grid
 import Common.Network.SiteType (Site)
 import Common.FrontEnd.Views
 import Common.FrontEnd.Model
@@ -209,14 +204,15 @@ mainMain = do
     startComponent app
 
 
-appendHttpClient :: View Action -> View Action
-appendHttpClient (VNode a b cs ds) = VNode a b cs (component_ Client.app [] : ds)
+addToView :: View action -> View action -> View action
+addToView child (VNode a b cs ds) = VNode a b cs (child : ds)
+addToView _ v = v
 
 
 mainView :: MainComponent -> Model -> View Action
 mainView mc model = view
     where
-        view = either (const page404) id $
+        view = either (const page404) (addToView $ component_ Client.app []) $
             route (Proxy :: Proxy Route) handlers current_uri model
 
         handlers

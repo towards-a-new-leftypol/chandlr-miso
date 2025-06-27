@@ -28,7 +28,6 @@ import Common.Network.HttpTypes (HttpResult (..))
 import Common.Component.Search.SearchTypes
 import Common.Component.Search.View
 import qualified Network.Client as Client
-import Common.Network.CatalogPostType (CatalogPost)
 
 
 update :: Action -> Effect Model Action
