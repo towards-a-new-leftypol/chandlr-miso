@@ -37,6 +37,8 @@ import Miso
     , put
     , notify
     , component_
+    , onMountedWith
+    , issue
     )
 import Miso.String (MisoString, toMisoString)
 import Servant.API
@@ -124,11 +126,14 @@ initialModel
     -> UTCTime
     -> MVar MisoString
     -> Model
-initialModel pgroot client_fetch_count media_root u t smv = Model
+initialModel pgroot fetch_count media_root u t smv = Model
     { current_uri = u
     , media_root_ = media_root
     , current_time = t
     , search_term = ""
+    , initial_action = NoAction
+    , pg_api_root = pgroot
+    , client_fetch_count = fetch_count
     }
 
 
@@ -190,13 +195,13 @@ mainMain = do
           search_var
 
     let app :: MainComponent = Component
-            { model         = initial_model
-            , update        = mainUpdate
+            { model         = initial_model { initial_action = initialActionFromRoute initial_model uri }
+            , update        = mainUpdate app
             , view          = mainView app
             , subs          = [ uriSub ChangeURI ]
             , events        = defaultEvents
             , styles = []
-            , initialAction = Just $ initialActionFromRoute initial_model uri
+            , initialAction = Nothing
             , mountPoint    = Nothing
             , logLevel      = DebugAll
             }
@@ -212,8 +217,14 @@ addToView _ v = v
 mainView :: MainComponent -> Model -> View Action
 mainView mc model = view
     where
-        view = either (const page404) (addToView $ component_ Client.app []) $
+        view = either (const page404) addClient $
             route (Proxy :: Proxy Route) handlers current_uri model
+
+        addClient :: View Action -> View Action
+        addClient = addToView $
+            component_
+                Client.app
+                [ onMountedWith (const ClientMounted) ]
 
         handlers
             =    (catalogView tc grid)
@@ -230,11 +241,27 @@ mainView mc model = view
         grid = Grid.app mc (media_root_ model)
 
 
-mainUpdate :: Action -> Effect Model Action
-mainUpdate (HaveLatest Client.Error) =
+mainUpdate :: MainComponent -> Action -> Effect Model Action
+mainUpdate _ ClientMounted = do
+    model <- get
+
+    io_ $ do
+        consoleLog "Http Client Mounted!"
+        notify
+            Client.app
+            ( undefined
+            , Client.InitModel $
+                Client.Model
+                    (pg_api_root model)
+                    (client_fetch_count model)
+            )
+
+    issue $ initial_action model
+
+mainUpdate _ (HaveLatest Client.Error) =
     io_ $ consoleLog "Getting Latest failed!"
 
-mainUpdate (HaveLatest (Client.HttpResponse {..})) =
+mainUpdate _ (HaveLatest (Client.HttpResponse {..})) =
     case body of
         Nothing -> io_ $
             consoleLog "Didn't get anything back from API"
@@ -242,24 +269,24 @@ mainUpdate (HaveLatest (Client.HttpResponse {..})) =
             -- mapM_ (consoleLog . toJSString . show) posts
             notify (Grid.app undefined undefined) $ Grid.DisplayItems posts
 
-mainUpdate (HaveThread Client.Error) =
+mainUpdate _ (HaveThread Client.Error) =
     io_ $ consoleLog "Getting Thread failed!"
 
-mainUpdate (HaveThread (Client.HttpResponse {..})) =
+mainUpdate _ (HaveThread (Client.HttpResponse {..})) =
     io_ $ do
         consoleLog "Have Thread!"
         notify Thread.app $ Thread.RenderSite (head $ fromJust body)
 
-mainUpdate (GoToTime t) = do
+mainUpdate mc (GoToTime t) = do
   modify (\m -> m { current_time = t })
   io_ $ notify Client.app (iface, Client.FetchLatest t)
 
   where
     iface :: Client.SomeInterface
     iface = Client.SomeInterface $
-        Client.Interface HaveLatest (undefined :: MainComponent)
+        Client.Interface HaveLatest mc
 
-mainUpdate (GetThread GetThreadArgs {..}) = do
+mainUpdate _ (GetThread GetThreadArgs {..}) = do
     io_ $ consoleLog $ "Thread " `append` (pack $ show $ board_thread_id)
 
     model <- get
@@ -281,12 +308,12 @@ mainUpdate (GetThread GetThreadArgs {..}) = do
             , uriQuery = ""
             }
 
-mainUpdate (ChangeURI uri) = do
+mainUpdate _ (ChangeURI uri) = do
     modify (\m -> m { current_uri = uri })
     io_ $ consoleLog $ "ChangeURI! " `append` (pack $ show $ uri)
 
 
-mainUpdate (SearchResults query) = do
+mainUpdate _ (SearchResults query) = do
     model <- get
 
     let new_uri :: URI = new_current_uri model

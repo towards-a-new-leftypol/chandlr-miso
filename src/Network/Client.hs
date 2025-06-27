@@ -22,7 +22,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
 import Data.Aeson (ToJSON, FromJSON)
-import Control.Monad.State (get)
+import Control.Monad.State (get, put)
 import Data.Typeable (Typeable, cast)
 
 import Miso (withSink, Effect, io_, notify, Component, text)
@@ -55,6 +55,7 @@ awaitResult (SomeInterface (Interface { returnResult, notifyComponent })) action
             error "Client encountered unexpected type error"
 
 update :: Action -> Effect Model Action
+update (_, InitModel m) = put m
 update (iface, Connect actionResult) = awaitResult iface actionResult
 update (SomeInterface iface, FetchLatest t) = do
     model <- get
