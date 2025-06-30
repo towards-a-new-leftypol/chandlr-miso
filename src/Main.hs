@@ -50,11 +50,11 @@ import Language.Javascript.JSaddle.Monad (JSM)
 import Common.FrontEnd.Action
 import Common.FrontEnd.Routes
 import qualified Network.Client as Client
-import qualified Common.Network.ClientTypes as Client
 import qualified Common.Component.Thread as Thread
 import qualified Common.Component.TimeControl as TC
 import qualified Common.Component.Search.SearchTypes as Search
 import qualified Common.Component.CatalogGrid as Grid
+import Common.FrontEnd.MainComponent (MainComponent)
 import Common.Network.SiteType (Site)
 import Common.FrontEnd.Views
 import Common.FrontEnd.Model
@@ -74,7 +74,6 @@ data InitialData
     | ThreadData Site
     | Nil
 
-type MainComponent = Component "main" Model Action
 
 parseInitialDataUsingRoute :: Model -> URI -> MisoString -> InitialData
 parseInitialDataUsingRoute model uri raw_json = either (const Nil) id routing_result
@@ -132,6 +131,7 @@ initialModel pgroot fetch_count media_root u t smv = Model
     , current_time = t
     , search_term = ""
     , initial_action = NoAction
+    , thread_action = Nothing
     , pg_api_root = pgroot
     , client_fetch_count = fetch_count
     }
@@ -234,7 +234,7 @@ mainView mc model = view
         tc :: TC.TimeControl
         tc = TC.app 0 timeCallback
 
-        timeCallback :: TC.TimeChangeCallback "main" Model Action
+        timeCallback :: TC.TimeChangeCallback "body" Model Action
         timeCallback = (mc, GoToTime)
 
         grid :: Grid.GridComponent
@@ -258,6 +258,16 @@ mainUpdate _ ClientMounted = do
 
     issue $ initial_action model
 
+mainUpdate _ ThreadViewMounted = do
+    io_ $ consoleLog "ThreadViewMounted"
+
+    model <- get
+
+    maybe
+        (return ())
+        (io_ . notify Thread.app)
+        (thread_action model)
+
 mainUpdate _ (HaveLatest Client.Error) =
     io_ $ consoleLog "Getting Latest failed!"
 
@@ -272,10 +282,14 @@ mainUpdate _ (HaveLatest (Client.HttpResponse {..})) =
 mainUpdate _ (HaveThread Client.Error) =
     io_ $ consoleLog "Getting Thread failed!"
 
-mainUpdate _ (HaveThread (Client.HttpResponse {..})) =
-    io_ $ do
-        consoleLog "Have Thread!"
-        notify Thread.app $ Thread.RenderSite (head $ fromJust body)
+mainUpdate _ (HaveThread (Client.HttpResponse {..})) = do
+    io_ $ consoleLog "Have Thread!"
+    modify
+        ( \m -> m
+            { thread_action = Just $
+                Thread.RenderSite (media_root_ m) (head $ fromJust body)
+            }
+        )
 
 mainUpdate mc (GoToTime t) = do
   modify (\m -> m { current_time = t })
@@ -286,7 +300,7 @@ mainUpdate mc (GoToTime t) = do
     iface = Client.SomeInterface $
         Client.Interface HaveLatest mc
 
-mainUpdate _ (GetThread GetThreadArgs {..}) = do
+mainUpdate mc (GetThread GetThreadArgs {..}) = do
     io_ $ consoleLog $ "Thread " `append` (pack $ show $ board_thread_id)
 
     model <- get
@@ -298,7 +312,7 @@ mainUpdate _ (GetThread GetThreadArgs {..}) = do
     where
         iface :: Client.SomeInterface
         iface = Client.SomeInterface $
-            Client.Interface HaveThread (undefined :: MainComponent)
+            Client.Interface HaveThread mc
 
         new_current_uri :: Model -> URI
         new_current_uri m = (current_uri m)
