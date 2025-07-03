@@ -39,6 +39,7 @@ import Miso
     , component_
     , onMountedWith
     , issue
+    , key_
     )
 import Miso.String (MisoString, toMisoString)
 import Servant.API
@@ -224,7 +225,9 @@ mainView mc model = view
         addClient = addToView $
             component_
                 Client.app
-                [ onMountedWith (const ClientMounted) ]
+                [ key_ "http-client"
+                , onMountedWith (const ClientMounted)
+                ]
 
         handlers
             =    (catalogView tc grid)
