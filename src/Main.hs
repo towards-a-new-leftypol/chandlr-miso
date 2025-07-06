@@ -71,6 +71,8 @@ import JSFFI.Saddle
 import qualified Common.Network.CatalogPostType as CatP
 import qualified Common.Network.HttpTypes as Http
 
+import Debug.Trace (trace)
+
 data InitialData
     = CatalogData [ CatalogPost ]
     | SearchData [ CatalogPost ]
@@ -348,8 +350,11 @@ mainUpdate mc (GetThread GetThreadArgs {..}) = do
     model <- get
 
     io_ $ do
-        pushURI $ new_current_uri model
+        -- pushURI $ new_current_uri model
         consoleLog $ "pushURI: " <> (toMisoString $ show $ new_current_uri model)
+
+    put (trace "MODEL MODEL MODEL MODEL " model) { current_uri = (current_uri model) { uriPath = "/asdf" } }
+
         -- notify Client.app (iface, Client.GetThread GetThreadArgs {..})
 
     where
