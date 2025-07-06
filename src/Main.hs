@@ -287,12 +287,12 @@ mainUpdate _ (HaveThread Client.Error) =
 
 mainUpdate _ (HaveThread (Client.HttpResponse {..})) = do
     io_ $ consoleLog "Have Thread!"
-    modify
-        ( \m -> m
-            { thread_action = Just $
-                Thread.RenderSite (media_root_ m) (head $ fromJust body)
-            }
-        )
+    -- modify
+    --     ( \m -> m
+    --         { thread_action = Just $
+    --             Thread.RenderSite (media_root_ m) (head $ fromJust body)
+    --         }
+    --     )
 
 mainUpdate mc (GoToTime t) = do
   modify (\m -> m { current_time = t })
@@ -310,7 +310,8 @@ mainUpdate mc (GetThread GetThreadArgs {..}) = do
 
     io_ $ do
         pushURI $ new_current_uri model
-        notify Client.app (iface, Client.GetThread GetThreadArgs {..})
+        consoleLog $ "pushURI: " <> (toMisoString $ show $ new_current_uri model)
+        -- notify Client.app (iface, Client.GetThread GetThreadArgs {..})
 
     where
         iface :: Client.SomeInterface
@@ -347,3 +348,5 @@ mainUpdate _ (SearchResults query) = do
             { uriPath = "/search"
             , uriQuery = "?search=" ++ (escapeURIString isAllowedInURI $ unpack query)
             }
+
+mainUpdate _ NoAction = io_ $ consoleLog "Main - NoAction"
