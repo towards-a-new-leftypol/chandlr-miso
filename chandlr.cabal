@@ -97,6 +97,7 @@ executable chandlr
             Common.Parsing.PostPartType
             Common.Parsing.QuoteLinkParser
             Common.Parsing.BodyParser
+            Common.Component.Grid.Types
             Component.Search
             Network.Client
             Network.Http
