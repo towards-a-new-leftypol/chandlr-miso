@@ -14,7 +14,7 @@ import Data.Text (Text)
 import Data.Text.Lazy (toStrict)
 import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar)
-import Data.Aeson (FromJSON, ToJSON, eitherDecodeStrictText)
+import Data.Aeson (ToJSON, eitherDecodeStrictText)
 import Data.Aeson.Text (encodeToLazyText)
 import Data.JSString.Text (textToJSString)
 import Miso.String (MisoString, toMisoString, fromMisoString)
@@ -37,7 +37,7 @@ import JSFFI.XHR
 
 type Header = (MisoString, MisoString)
 
-mkResult :: (FromJSON a) => XMLHttpRequest -> JSM (HttpResult a)
+mkResult :: XMLHttpRequest -> JSM HttpResult
 mkResult xhr = do
         status_code_int <- getStatus xhr
 
@@ -67,12 +67,12 @@ mkResult xhr = do
 
 
 http
-    :: (FromJSON a, ToJSON b)
+    :: ToJSON a
     => MisoString
     -> HttpMethod
     -> [Header]
-    -> Maybe b
-    -> JSM (HttpActionResult a)
+    -> Maybe a
+    -> JSM HttpActionResult
 http url method headers payload = do
     xhr <- newXMLHttpRequest
 

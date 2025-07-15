@@ -8,56 +8,60 @@ module Network.Client
     ( Http.HttpActionResult
     , Http.HttpMethod (..)
     , Http.HttpResult (..)
-    , Action
-    , ActionVerb (..)
-    , Interface (..)
-    , SomeInterface (..)
+    , Action (..)
     , Model (..)
     , update
     , app
+    , helper
     ) where
 
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
-import Data.Aeson (ToJSON, FromJSON)
+import Data.Aeson (ToJSON, FromJSON, fromJSON, Result(..))
 import Control.Monad.State (get, put)
-import Data.Typeable (Typeable, cast)
 
-import Miso (withSink, Effect, io_, notify, Component, text)
+import Miso
+    ( withSink
+    , Effect
+    , Component
+    , text
+    , publish
+    , io, io_
+    , subscribe
+    , consoleError
+    , consoleLog
+    )
 import qualified Miso as M
 import Miso.String (MisoString, toMisoString)
 import Language.Javascript.JSaddle.Monad (askJSM, runJSaddle)
-import Language.Javascript.JSaddle.Monad (JSM)
 
 import qualified Network.Http as Http
 import Common.Network.ClientTypes
-import qualified Common.FrontEnd.Action as A
+
 
 awaitResult
-    :: Typeable a
-    => SomeInterface
-    -> Http.HttpActionResult a
+    :: Http.HttpActionResult
+    -> Sender
     -> Effect Model Action
-awaitResult (SomeInterface (Interface { returnResult, notifyComponent })) actionResult =
-    case cast actionResult of
-        Just ((_, resultVar) :: Http.HttpActionResult a) ->
-            io_ $ do
-                ctx <- askJSM
+awaitResult (_, resultVar) sender =
+    withSink $ \sink -> do
+        ctx <- askJSM
 
-                void $ liftIO $ forkIO $ do
-                    result :: Http.HttpResult b <- takeMVar resultVar
-                    --runJSaddle ctx $ sink $ (returnResult iface) result
-                    runJSaddle ctx $
-                        notify notifyComponent $ returnResult result
-        Nothing ->
-            error "Client encountered unexpected type error"
+        void $ liftIO $ forkIO $ do
+            result <- ReturnResult sender <$> takeMVar resultVar
+            --runJSaddle ctx $ sink $ (returnResult iface) result
+            runJSaddle ctx $
+                sink $ Publish result
+
 
 update :: Action -> Effect Model Action
-update (_, InitModel m) = put m
-update (iface, Connect actionResult) = awaitResult iface actionResult
-update (SomeInterface iface, FetchLatest t) = do
+update Initialize = subscribe clientInTopic OnMessage
+update (Publish x) = publish clientOutTopic x
+update (OnMessage (Success (_, InitModel m))) = put m
+update (Connect sender actionResult) = awaitResult actionResult sender
+update (OnMessage (Success (sender, FetchLatest t))) = do
     model <- get
 
     let payload = Just $ FetchCatalogArgs
@@ -65,12 +69,12 @@ update (SomeInterface iface, FetchLatest t) = do
             , max_row_read = fetchCount model
             }
 
-    send iface $ (http_ model "/rpc/fetch_catalog" Http.POST payload)
+    http_ model "/rpc/fetch_catalog" Http.POST payload sender
 
-update (SomeInterface iface, GetThread A.GetThreadArgs {..}) = do
+update (OnMessage (Success (sender, GetThread GetThreadArgs {..}))) = do
     model <- get
 
-    send iface $ http_ model path Http.GET (Nothing :: Maybe ())
+    http_ model path Http.GET (Nothing :: Maybe ()) sender
 
     where
         path = "/sites?"
@@ -80,10 +84,10 @@ update (SomeInterface iface, GetThread A.GetThreadArgs {..}) = do
             <> "&boards.threads.board_thread_id=eq." <> toMisoString (show board_thread_id)
             <> "&boards.threads.posts.order=board_post_id.asc"
 
-update (SomeInterface iface, Search query) = do
+update (OnMessage (Success (sender, Search query))) = do
     model <- get
 
-    send iface $ http_ model "/rpc/search_posts" Http.POST payload
+    http_ model "/rpc/search_posts" Http.POST payload sender
 
     where
         payload = Just $ SearchPostsArgs
@@ -91,32 +95,28 @@ update (SomeInterface iface, Search query) = do
             , max_rows = 100
             }
 
-send
-    :: forall a. (FromJSON a, Typeable a)
-    => Interface a
-    -> JSM (Http.HttpActionResult a)
-    -> Effect Model Action
-send iface action =
-    withSink $ \sink ->
-        action
-        >>= sink . ((,) (SomeInterface iface)) . Connect
+update (OnMessage (Error msg)) =
+    io_ $ consoleError ("Client Message decode failure: " <> toMisoString msg)
+
 
 http_
-    :: (ToJSON a, FromJSON b)
+    :: (ToJSON a)
     => Model
     -> MisoString
     -> Http.HttpMethod
     -> Maybe a
-    -> JSM (Http.HttpActionResult b)
-http_ m apiPath method payload =
-    Http.http
+    -> Sender
+    -- -> JSM (Http.HttpActionResult b)
+    -> Effect Model Action
+http_ m apiPath method payload sender =
+    io $ Connect sender <$> Http.http
         (pgApiRoot m <> apiPath)
         method
         [("Content-Type", "application/json")]
         payload
 
 
-app :: Component "http-client" Model Action
+app :: Component Model Action
 app = M.Component
     { M.model = Uninitialized
     , M.update = update
@@ -124,7 +124,36 @@ app = M.Component
     , M.subs = []
     , M.events = M.defaultEvents
     , M.styles = []
-    , M.initialAction = Nothing
+    , M.initialAction = Just Initialize
     , M.mountPoint = Nothing
     , M.logLevel = M.DebugAll
     }
+
+
+-- Need a function to decode a value.
+-- let's start with a simple case:
+
+foo :: (FromJSON a) => Http.HttpResult -> Result a
+foo Http.Error = Error "Http error"
+foo (Http.HttpResponse _ _ (Just body)) = fromJSON body
+foo _ = undefined -- nothing to parse!
+
+-- But we probably want an Effect here
+helper
+    :: (FromJSON a)
+    => Http.HttpResult
+    -> (a -> Effect model action)
+    -> Effect model action
+helper Http.Error _ = io_ $ consoleError "Http Error"
+helper (Http.HttpResponse status_code status_text (Just body)) continue = do
+    io_ $ do
+        consoleLog $ (toMisoString $ show $ status_code) <> " " <> (toMisoString $ status_text)
+        consoleLog $ (toMisoString $ show $ body)
+
+    let parsed = fromJSON body
+
+    case parsed of
+        Error msg -> io_ $ consoleError (toMisoString msg) -- alert Error component here, maybe have toast pop up
+        Success x -> continue x
+
+helper _ _ = return () -- No body, nothing to parse

@@ -4,6 +4,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 module Main where
 
@@ -25,6 +26,7 @@ import Miso
     , LogLevel (DebugAll)
     , route
     , consoleLog
+    , consoleError
     , pushURI
     , uriSub
     , run
@@ -35,14 +37,16 @@ import Miso
     , io_
     , get
     , put
-    , notify
     , component_
     , onMountedWith
     , issue
+    , getComponentId
+    , publish
+    , subscribe
     )
 import Miso.String (MisoString, toMisoString)
 import Servant.API
-import Data.Aeson (decodeStrict, FromJSON)
+import Data.Aeson (decodeStrict, FromJSON, Result(..))
 import Control.Monad.IO.Class (liftIO)
 import Language.Javascript.JSaddle (toJSString)
 import Language.Javascript.JSaddle.Monad (JSM)
@@ -50,6 +54,7 @@ import Language.Javascript.JSaddle.Monad (JSM)
 import Common.FrontEnd.Action
 import Common.FrontEnd.Routes
 import qualified Network.Client as Client
+import qualified Common.Network.ClientTypes as Client
 import qualified Common.Component.Thread as Thread
 import qualified Common.Component.TimeControl as TC
 import qualified Common.Component.Search.SearchTypes as Search
@@ -74,6 +79,14 @@ data InitialData
     | ThreadData Site
     | Nil
 
+pattern Sender :: Client.Sender
+pattern Sender = "main"
+
+pattern SenderLatest :: Client.Sender
+pattern SenderLatest = "main-latest"
+
+pattern SenderThread :: Client.Sender
+pattern SenderThread = "main-thread"
 
 parseInitialDataUsingRoute :: Model -> URI -> MisoString -> InitialData
 parseInitialDataUsingRoute model uri raw_json = either (const Nil) id routing_result
@@ -105,7 +118,7 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
         h_latest = const $ GoToTime $ current_time model
 
         h_thread :: Text -> Text -> BoardThreadId -> Model -> Action
-        h_thread website board_pathpart board_thread_id _ = GetThread GetThreadArgs {..}
+        h_thread website board_pathpart board_thread_id _ = GetThread Client.GetThreadArgs {..}
 
         h_search :: Maybe Text -> Model -> Action
         h_search Nothing m = GoToTime $ current_time m
@@ -131,9 +144,10 @@ initialModel pgroot fetch_count media_root u t smv = Model
     , current_time = t
     , search_term = ""
     , initial_action = NoAction
-    , thread_action = Nothing
+    , thread_message = Nothing
     , pg_api_root = pgroot
     , client_fetch_count = fetch_count
+    , my_component_id = 0
     }
 
 
@@ -196,12 +210,12 @@ mainMain = do
 
     let app :: MainComponent = Component
             { model         = initial_model { initial_action = initialActionFromRoute initial_model uri }
-            , update        = mainUpdate app
-            , view          = mainView app
+            , update        = mainUpdate
+            , view          = mainView
             , subs          = [ uriSub ChangeURI ]
             , events        = defaultEvents
             , styles = []
-            , initialAction = Nothing
+            , initialAction = Just Initialize
             , mountPoint    = Nothing
             , logLevel      = DebugAll
             }
@@ -214,8 +228,8 @@ addToView child (VNode a b cs ds) = VNode a b cs (child : ds)
 addToView _ v = v
 
 
-mainView :: MainComponent -> Model -> View Action
-mainView mc model = view
+mainView :: Model -> View Action
+mainView model = view
     where
         view = either (const page404) addClient $
             route (Proxy :: Proxy Route) handlers current_uri model
@@ -223,8 +237,8 @@ mainView mc model = view
         addClient :: View Action -> View Action
         addClient = addToView $
             component_
-                Client.app
                 [ onMountedWith (const ClientMounted) ]
+                Client.app
 
         handlers
             =    (catalogView tc grid)
@@ -232,88 +246,105 @@ mainView mc model = view
             :<|> (searchView grid)
 
         tc :: TC.TimeControl
-        tc = TC.app 0 timeCallback
-
-        timeCallback :: TC.TimeChangeCallback "body" Model Action
-        timeCallback = (mc, GoToTime)
+        tc = TC.app 0
 
         grid :: Grid.GridComponent
-        grid = Grid.app mc (media_root_ model)
+        grid = Grid.app (media_root_ model)
 
 
-mainUpdate :: MainComponent -> Action -> Effect Model Action
-mainUpdate _ ClientMounted = do
+mainUpdate :: Action -> Effect Model Action
+mainUpdate Initialize = do
+    getComponentId HaveOwnComponentId
+    subscribe Client.clientOutTopic ClientResponse
+
+mainUpdate (HaveOwnComponentId component_id) = 
+    modify (\m -> m { my_component_id = component_id })
+
+mainUpdate ClientMounted = do
     model <- get
 
-    io_ $ do
-        consoleLog "Http Client Mounted!"
-        notify
-            Client.app
-            ( undefined
-            , Client.InitModel $
-                Client.Model
-                    (pg_api_root model)
-                    (client_fetch_count model)
-            )
+    io_ $ consoleLog "Http Client Mounted!"
+
+    publish
+        Client.clientInTopic
+        ( Sender
+        , Client.InitModel $
+            Client.Model
+                (pg_api_root model)
+                (client_fetch_count model)
+        )
 
     issue $ initial_action model
 
-mainUpdate _ ThreadViewMounted = do
+mainUpdate ThreadViewMounted = do
     io_ $ consoleLog "ThreadViewMounted"
 
     model <- get
 
     maybe
         (return ())
-        (io_ . notify Thread.app)
-        (thread_action model)
+        (publish Thread.threadTopic)
+        (thread_message model)
 
-mainUpdate _ (HaveLatest Client.Error) =
+mainUpdate (ClientResponse (Success (Client.ReturnResult SenderLatest result))) =
+    Client.helper result $ \catalog_posts ->
+        publish Grid.catalogInTopic $ Grid.DisplayItems catalog_posts
+
+mainUpdate (ClientResponse (Success (Client.ReturnResult SenderThread result))) =
+    Client.helper result $ \sites ->
+        modify
+            ( \m -> m
+                { thread_message = Just $
+                    Thread.RenderSite (media_root_ m) (head sites)
+                }
+            )
+
+mainUpdate (ClientResponse (Success (Client.ReturnResult _ _))) = return ()
+mainUpdate (ClientResponse (Error msg)) =
+    io_ $ consoleError ("Main Component ClientResponse decode failure: " <> toMisoString msg)
+
+
+{-
+mainUpdate (HaveLatest Client.Error) =
     io_ $ consoleLog "Getting Latest failed!"
 
-mainUpdate _ (HaveLatest (Client.HttpResponse {..})) =
+mainUpdate (HaveLatest (Client.HttpResponse {..})) =
     case body of
         Nothing -> io_ $
             consoleLog "Didn't get anything back from API"
-        Just posts -> io_ $
+        Just posts ->
             -- mapM_ (consoleLog . toJSString . show) posts
-            notify (Grid.app undefined undefined) $ Grid.DisplayItems posts
+            publish Grid.catalogInTopic $ Grid.DisplayItems posts
+            -- notify (Grid.app undefined undefined) $ Grid.DisplayItems posts
 
-mainUpdate _ (HaveThread Client.Error) =
+mainUpdate (HaveThread Client.Error) =
     io_ $ consoleLog "Getting Thread failed!"
 
-mainUpdate _ (HaveThread (Client.HttpResponse {..})) = do
+mainUpdate (HaveThread (Client.HttpResponse {..})) = do
     io_ $ consoleLog "Have Thread!"
+
     modify
         ( \m -> m
-            { thread_action = Just $
+            { thread_message = Just $
                 Thread.RenderSite (media_root_ m) (head $ fromJust body)
             }
         )
+-}
 
-mainUpdate mc (GoToTime t) = do
-  modify (\m -> m { current_time = t })
-  io_ $ notify Client.app (iface, Client.FetchLatest t)
+mainUpdate (GoToTime t) = do
+    modify (\m -> m { current_time = t })
+    publish Client.clientInTopic (SenderLatest, Client.FetchLatest t)
 
-  where
-    iface :: Client.SomeInterface
-    iface = Client.SomeInterface $
-        Client.Interface HaveLatest mc
-
-mainUpdate mc (GetThread GetThreadArgs {..}) = do
+mainUpdate (GetThread Client.GetThreadArgs {..}) = do
     io_ $ consoleLog $ "Thread " `append` (pack $ show $ board_thread_id)
 
     model <- get
 
-    io_ $ do
-        pushURI $ new_current_uri model
-        notify Client.app (iface, Client.GetThread GetThreadArgs {..})
+    io_ $ pushURI $ new_current_uri model
+
+    publish Client.clientInTopic (SenderThread, Client.GetThread Client.GetThreadArgs {..})
 
     where
-        iface :: Client.SomeInterface
-        iface = Client.SomeInterface $
-            Client.Interface HaveThread mc
-
         new_current_uri :: Model -> URI
         new_current_uri m = (current_uri m)
             { uriPath = T.unpack website
@@ -322,12 +353,12 @@ mainUpdate mc (GetThread GetThreadArgs {..}) = do
             , uriQuery = ""
             }
 
-mainUpdate _ (ChangeURI uri) = do
+mainUpdate (ChangeURI uri) = do
     modify (\m -> m { current_uri = uri })
     io_ $ consoleLog $ "ChangeURI! " `append` (pack $ show $ uri)
 
 
-mainUpdate _ (SearchResults query) = do
+mainUpdate (SearchResults query) = do
     model <- get
 
     let new_uri :: URI = new_current_uri model
