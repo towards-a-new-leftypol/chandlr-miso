@@ -57,6 +57,7 @@ import qualified Common.Network.ClientTypes as Client
 import qualified Common.Component.Thread as Thread
 import qualified Common.Component.TimeControl as TC
 import qualified Common.Component.Search.SearchTypes as Search
+import qualified Common.Component.CatalogGrid.GridTypes as Grid
 import qualified Common.Component.CatalogGrid as Grid
 import Common.FrontEnd.MainComponent (MainComponent)
 import Common.Network.SiteType (Site)
@@ -258,6 +259,7 @@ mainUpdate NoAction = return ()
 mainUpdate Initialize = do
     getComponentId HaveOwnComponentId
     subscribe Client.clientOutTopic ClientResponse
+    subscribe Grid.catalogOutTopic GridMessage
 
 mainUpdate (HaveOwnComponentId component_id) = 
     modify (\m -> m { my_component_id = component_id })
@@ -287,6 +289,12 @@ mainUpdate ThreadViewMounted = do
         (return ())
         (publish Thread.threadTopic)
         (thread_message model)
+
+mainUpdate (GridMessage (Success (Grid.GetThread getThreadArgs))) =
+    issue $ GetThread getThreadArgs
+
+mainUpdate (GridMessage (Error msg)) =
+    io_ $ consoleError ("Main Component GridMessage decode failure: " <> toMisoString msg)
 
 mainUpdate (ClientResponse (Success (Client.ReturnResult SenderLatest result))) =
     Client.helper result $ \catalog_posts ->

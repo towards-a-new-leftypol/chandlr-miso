@@ -79,6 +79,7 @@ executable chandlr
             Common.Component.Thread.Model
             Common.Component.Thread
             Common.Component.TimeControl
+            Common.Component.CatalogGrid.GridTypes
             Common.FrontEnd.MainComponent
             Common.FrontEnd.Action
             Common.FrontEnd.Model
