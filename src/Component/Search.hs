@@ -37,7 +37,10 @@ pattern Sender :: Client.Sender
 pattern Sender = "search"
 
 update :: Action -> Effect Model Action
-update Initialize = subscribe Client.clientOutTopic SearchResult
+update Initialize = do
+    subscribe Client.clientOutTopic SearchResult
+    subscribe searchTopic OnMessage
+
 update (SearchChange q) =
     modify (\m -> m { searchTerm = q })
 
@@ -64,6 +67,10 @@ update (SearchResult (Success (Client.ReturnResult _ _))) = return ()
 update (SearchResult (Error msg)) =
     io_ $ consoleError (toMisoString msg)
 
+update (OnMessage (Success query)) = issue $ ChangeAndSubmit query
+
+update (OnMessage (Error msg)) =
+    io_ $ consoleError $ "Search OnMessage decode error: " <> (toMisoString msg)
 
 app :: Component Model Action
 app = M.Component
@@ -76,4 +83,6 @@ app = M.Component
     , M.initialAction = Just Initialize
     , M.mountPoint = Nothing
     , M.logLevel = M.DebugAll
+    , M.scripts = []
+    , M.mailbox = const Nothing
     }

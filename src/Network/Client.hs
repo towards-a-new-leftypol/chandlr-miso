@@ -127,16 +127,10 @@ app = M.Component
     , M.initialAction = Just Initialize
     , M.mountPoint = Nothing
     , M.logLevel = M.DebugAll
+    , M.scripts = []
+    , M.mailbox = const Nothing
     }
 
-
--- Need a function to decode a value.
--- let's start with a simple case:
-
-foo :: (FromJSON a) => Http.HttpResult -> Result a
-foo Http.Error = Error "Http error"
-foo (Http.HttpResponse _ _ (Just body)) = fromJSON body
-foo _ = undefined -- nothing to parse!
 
 -- But we probably want an Effect here
 helper

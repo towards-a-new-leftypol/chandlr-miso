@@ -9,7 +9,6 @@
 module Main where
 
 import Data.Proxy
-import Data.Maybe (fromJust)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 import qualified Data.Text as T
@@ -124,7 +123,7 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
         h_search Nothing m = GoToTime $ current_time m
         h_search (Just search_query) m
             | search_term m == unescaped_search_query = SearchResults unescaped_search_query
-            | otherwise = NotifySearch $ Search.ChangeAndSubmit unescaped_search_query
+            | otherwise = NotifySearch $ unescaped_search_query
 
             where
                 unescaped_search_query = toMisoString $ unEscapeString $ T.unpack search_query
@@ -143,7 +142,7 @@ initialModel pgroot fetch_count media_root u t smv = Model
     , media_root_ = media_root
     , current_time = t
     , search_term = ""
-    , initial_action = NoAction
+    , initial_action = Initialize
     , thread_message = Nothing
     , pg_api_root = pgroot
     , client_fetch_count = fetch_count
@@ -218,6 +217,8 @@ mainMain = do
             , initialAction = Just Initialize
             , mountPoint    = Nothing
             , logLevel      = DebugAll
+            , scripts = []
+            , mailbox = const Nothing
             }
 
     startComponent app
@@ -253,6 +254,7 @@ mainView model = view
 
 
 mainUpdate :: Action -> Effect Model Action
+mainUpdate NoAction = return ()
 mainUpdate Initialize = do
     getComponentId HaveOwnComponentId
     subscribe Client.clientOutTopic ClientResponse
@@ -303,34 +305,6 @@ mainUpdate (ClientResponse (Success (Client.ReturnResult _ _))) = return ()
 mainUpdate (ClientResponse (Error msg)) =
     io_ $ consoleError ("Main Component ClientResponse decode failure: " <> toMisoString msg)
 
-
-{-
-mainUpdate (HaveLatest Client.Error) =
-    io_ $ consoleLog "Getting Latest failed!"
-
-mainUpdate (HaveLatest (Client.HttpResponse {..})) =
-    case body of
-        Nothing -> io_ $
-            consoleLog "Didn't get anything back from API"
-        Just posts ->
-            -- mapM_ (consoleLog . toJSString . show) posts
-            publish Grid.catalogInTopic $ Grid.DisplayItems posts
-            -- notify (Grid.app undefined undefined) $ Grid.DisplayItems posts
-
-mainUpdate (HaveThread Client.Error) =
-    io_ $ consoleLog "Getting Thread failed!"
-
-mainUpdate (HaveThread (Client.HttpResponse {..})) = do
-    io_ $ consoleLog "Have Thread!"
-
-    modify
-        ( \m -> m
-            { thread_message = Just $
-                Thread.RenderSite (media_root_ m) (head $ fromJust body)
-            }
-        )
--}
-
 mainUpdate (GoToTime t) = do
     modify (\m -> m { current_time = t })
     publish Client.clientInTopic (SenderLatest, Client.FetchLatest t)
@@ -375,3 +349,5 @@ mainUpdate (SearchResults query) = do
             { uriPath = "/search"
             , uriQuery = "?search=" ++ (escapeURIString isAllowedInURI $ unpack query)
             }
+
+mainUpdate (NotifySearch query) = publish Search.searchTopic query
