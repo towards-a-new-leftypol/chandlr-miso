@@ -38,10 +38,12 @@ import Miso
     , put
     , component_
     , onMountedWith
+    , onUnmountedWith
     , issue
     , getComponentId
     , publish
     , subscribe
+    , key_
     )
 import Miso.String (MisoString, toMisoString)
 import Servant.API
@@ -239,7 +241,10 @@ mainView model = view
         addClient :: View Action -> View Action
         addClient = addToView $
             component_
-                [ onMountedWith (const ClientMounted) ]
+                [ onMountedWith (const ClientMounted)
+                , onUnmountedWith (const ClientUnmounted)
+                , key_ ("http-client" :: MisoString)
+                ]
                 Client.app
 
         handlers
@@ -279,6 +284,9 @@ mainUpdate ClientMounted = do
         )
 
     issue $ initial_action model
+    modify $ \m -> m { initial_action = NoAction }
+
+mainUpdate ClientUnmounted = io_ $ consoleLog "Http Client Unmounted!"
 
 mainUpdate ThreadViewMounted = do
     io_ $ consoleLog "ThreadViewMounted"
@@ -324,7 +332,7 @@ mainUpdate (GetThread Client.GetThreadArgs {..}) = do
 
     io_ $ pushURI $ new_current_uri model
 
-    publish Client.clientInTopic (SenderThread, Client.GetThread Client.GetThreadArgs {..})
+    -- publish Client.clientInTopic (SenderThread, Client.GetThread Client.GetThreadArgs {..})
 
     where
         new_current_uri :: Model -> URI
