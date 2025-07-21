@@ -62,7 +62,7 @@ update (SearchResult (Success (Client.ReturnResult Sender result))) =
     Client.helper result $ \search_results ->
         modify (\m -> m { displayResults = search_results })
 
-update (SearchResult (Success (Client.ReturnResult _ _))) = return ()
+update (SearchResult (Success _)) = return ()
 
 update (SearchResult (Error msg)) =
     io_ $ consoleError (toMisoString msg)

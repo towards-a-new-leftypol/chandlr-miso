@@ -37,13 +37,10 @@ import Miso
     , get
     , put
     , component_
-    , onMountedWith
-    , onUnmountedWith
     , issue
     , getComponentId
     , publish
     , subscribe
-    , key_
     )
 import Miso.String (MisoString, toMisoString)
 import Servant.API
@@ -240,12 +237,7 @@ mainView model = view
 
         addClient :: View Action -> View Action
         addClient = addToView $
-            component_
-                [ onMountedWith (const ClientMounted)
-                , onUnmountedWith (const ClientUnmounted)
-                , key_ ("http-client" :: MisoString)
-                ]
-                Client.app
+            component_ Client.app
 
         handlers
             =    (catalogView tc grid)
@@ -263,7 +255,7 @@ mainUpdate :: Action -> Effect Model Action
 mainUpdate NoAction = return ()
 mainUpdate Initialize = do
     getComponentId HaveOwnComponentId
-    subscribe Client.clientOutTopic ClientResponse
+    subscribe Client.clientOutTopic ClientMessage
     subscribe Grid.catalogOutTopic GridMessage
 
 mainUpdate (HaveOwnComponentId component_id) = 
@@ -304,11 +296,13 @@ mainUpdate (GridMessage (Success (Grid.GetThread getThreadArgs))) =
 mainUpdate (GridMessage (Error msg)) =
     io_ $ consoleError ("Main Component GridMessage decode failure: " <> toMisoString msg)
 
-mainUpdate (ClientResponse (Success (Client.ReturnResult SenderLatest result))) =
+mainUpdate (ClientMessage (Success (Client.Mounted))) = issue ClientMounted
+mainUpdate (ClientMessage (Success (Client.Unmounted))) = issue ClientUnmounted
+mainUpdate (ClientMessage (Success (Client.ReturnResult SenderLatest result))) =
     Client.helper result $ \catalog_posts ->
         publish Grid.catalogInTopic $ Grid.DisplayItems catalog_posts
 
-mainUpdate (ClientResponse (Success (Client.ReturnResult SenderThread result))) =
+mainUpdate (ClientMessage (Success (Client.ReturnResult SenderThread result))) =
     Client.helper result $ \sites ->
         modify
             ( \m -> m
@@ -317,9 +311,9 @@ mainUpdate (ClientResponse (Success (Client.ReturnResult SenderThread result))) 
                 }
             )
 
-mainUpdate (ClientResponse (Success (Client.ReturnResult _ _))) = return ()
-mainUpdate (ClientResponse (Error msg)) =
-    io_ $ consoleError ("Main Component ClientResponse decode failure: " <> toMisoString msg)
+mainUpdate (ClientMessage (Success (Client.ReturnResult _ _))) = return ()
+mainUpdate (ClientMessage (Error msg)) =
+    io_ $ consoleError ("Main Component ClientMessage decode failure: " <> toMisoString msg)
 
 mainUpdate (GoToTime t) = do
     modify (\m -> m { current_time = t })

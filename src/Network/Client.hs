@@ -26,12 +26,13 @@ import Miso
     ( withSink
     , Effect
     , Component
-    , text
+    , div_
     , publish
     , io, io_
     , subscribe
     , consoleError
     , consoleLog
+    , key_
     )
 import qualified Miso as M
 import Miso.String (MisoString, toMisoString)
@@ -58,6 +59,10 @@ awaitResult (_, resultVar) sender =
 
 update :: Action -> Effect Model Action
 update Initialize = subscribe clientInTopic OnMessage
+update OnMount = do
+    io_ $ consoleLog "Client OnMount (publishing topic)"
+    publish clientOutTopic Mounted
+update OnUnmount = publish clientOutTopic Unmounted
 update (Publish x) = publish clientOutTopic x
 update (OnMessage (Success (_, InitModel m))) = put m
 update (Connect sender actionResult) = awaitResult actionResult sender
@@ -120,7 +125,7 @@ app :: Component Model Action
 app = M.Component
     { M.model = Uninitialized
     , M.update = update
-    , M.view = const $ text ""
+    , M.view = view
     , M.subs = []
     , M.events = M.defaultEvents
     , M.styles = []
@@ -131,6 +136,15 @@ app = M.Component
     , M.mailbox = const Nothing
     }
 
+
+view :: a -> M.View Action
+view = const $
+    div_
+        [ M.onMounted OnMount
+        , M.onUnmounted OnUnmount
+        , key_ ("http-client" :: MisoString)
+        ]
+        [ "Http - Client" ]
 
 -- But we probably want an Effect here
 helper
