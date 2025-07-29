@@ -227,29 +227,15 @@ mainMain = do
     startComponent app
 
 
-addToView :: View action -> View action -> View action
-addToView child (VNode a b cs ds) = VNode a b cs (child : ds)
-addToView _ v = v
-
-
 mainView :: Model -> View Action
 mainView model = view
     where
-        view = either (const page404) addClient $
+        view = either (const page404) id $
             route (Proxy :: Proxy Route) handlers current_uri model
-
-        addClient :: View Action -> View Action
-        addClient = addToView $
-            component_
-                [ onMountedWith (const ClientMounted)
-                , onUnmountedWith (const ClientUnmounted)
-                , key_ ("http-client" :: MisoString)
-                ]
-                Client.app
 
         handlers
             =    (catalogView tc grid)
-            :<|> (threadView Thread.app)
+            :<|> threadView
             :<|> (searchView grid)
 
         tc :: TC.TimeControl
@@ -332,7 +318,7 @@ mainUpdate (GetThread Client.GetThreadArgs {..}) = do
 
     io_ $ pushURI $ new_current_uri model
 
-    -- publish Client.clientInTopic (SenderThread, Client.GetThread Client.GetThreadArgs {..})
+    publish Client.clientInTopic (SenderThread, Client.GetThread Client.GetThreadArgs {..})
 
     where
         new_current_uri :: Model -> URI
