@@ -36,14 +36,10 @@ import Miso
     , io_
     , get
     , put
-    , component_
-    , onMountedWith
-    , onUnmountedWith
     , issue
     , getComponentId
     , publish
     , subscribe
-    , key_
     )
 import Miso.String (MisoString, toMisoString)
 import Servant.API
@@ -62,7 +58,7 @@ import qualified Common.Component.Search.SearchTypes as Search
 import qualified Common.Component.CatalogGrid.GridTypes as Grid
 import qualified Common.Component.CatalogGrid as Grid
 import Common.FrontEnd.MainComponent (MainComponent)
-import Common.Network.SiteType (Site)
+import Common.Network.SiteType (Site, fromCatalogPost)
 import Common.FrontEnd.Views
 import Common.FrontEnd.Model
 import Common.Network.CatalogPostType (CatalogPost)
@@ -280,12 +276,19 @@ mainUpdate ThreadViewMounted = do
     model <- get
 
     maybe
-        (return ())
+        (io_ $ consoleLog "No thread_message available for sending in Main Model")
         (publish Thread.threadTopic)
         (thread_message model)
 
-mainUpdate (GridMessage (Success (Grid.GetThread getThreadArgs))) =
-    issue $ GetThread getThreadArgs
+mainUpdate (GridMessage (Success (Grid.SelectThread catalog_post))) = do
+    modify
+        ( \m -> m
+            { thread_message = Just $
+                Thread.RenderSite (media_root_ m) (fromCatalogPost catalog_post)
+            }
+        )
+
+    issue $ GetThread $ mkGetThread catalog_post
 
 mainUpdate (GridMessage (Error msg)) =
     io_ $ consoleError ("Main Component GridMessage decode failure: " <> toMisoString msg)
@@ -295,13 +298,18 @@ mainUpdate (ClientResponse (Success (Client.ReturnResult SenderLatest result))) 
         publish Grid.catalogInTopic $ Grid.DisplayItems catalog_posts
 
 mainUpdate (ClientResponse (Success (Client.ReturnResult SenderThread result))) =
-    Client.helper result $ \sites ->
-        modify
-            ( \m -> m
-                { thread_message = Just $
-                    Thread.RenderSite (media_root_ m) (head sites)
-                }
-            )
+    do
+        io_ $ consoleLog $ SenderThread <> " - Has result. Storing result in model."
+
+        Client.helper result $ \sites ->
+            modify
+                ( \m -> m
+                    { thread_message = Just $
+                        Thread.RenderSite (media_root_ m) (head sites)
+                    }
+                )
+
+        issue ThreadViewMounted
 
 mainUpdate (ClientResponse (Success (Client.ReturnResult _ _))) = return ()
 mainUpdate (ClientResponse (Error msg)) =

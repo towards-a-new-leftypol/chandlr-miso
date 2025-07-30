@@ -132,7 +132,6 @@ app = M.Component
     }
 
 
--- But we probably want an Effect here
 helper
     :: (FromJSON a)
     => Http.HttpResult
@@ -142,7 +141,7 @@ helper Http.Error _ = io_ $ consoleError "Http Error"
 helper (Http.HttpResponse status_code status_text (Just body)) continue = do
     io_ $ do
         consoleLog $ (toMisoString $ show $ status_code) <> " " <> (toMisoString $ status_text)
-        consoleLog $ (toMisoString $ show $ body)
+        -- consoleLog $ (toMisoString $ show $ body)
 
     let parsed = fromJSON body
 
