@@ -16,7 +16,6 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar)
 import Data.Aeson (ToJSON, eitherDecodeStrictText)
 import Data.Aeson.Text (encodeToLazyText)
-import Data.JSString.Text (textToJSString)
 import Miso.String (MisoString, toMisoString, fromMisoString)
 import Miso (consoleLog)
 import Language.Javascript.JSaddle.Monad (JSM)
@@ -93,7 +92,7 @@ http url method headers payload = do
 
     mapM_ (\(k, v) -> setRequestHeader xhr k v) headers
 
-    let p = payload >>= Just . textToJSString . toStrict . encodeToLazyText
+    let p = payload >>= Just . toMisoString . toStrict . encodeToLazyText
 
     send xhr p
     return (abort xhr, resultVar)

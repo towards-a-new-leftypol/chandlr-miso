@@ -12,14 +12,13 @@ module Network.Client
     , Model (..)
     , update
     , app
-    , helper
     ) where
 
 import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
-import Data.Aeson (ToJSON, FromJSON, fromJSON, Result(..))
+import Data.Aeson (ToJSON, Result(..))
 import Control.Monad.State (get, put)
 
 import Miso
@@ -57,11 +56,11 @@ awaitResult (_, resultVar) sender =
 
 
 update :: Action -> Effect Model Action
-update Initialize = subscribe clientInTopic OnMessage
+update Initialize = subscribe clientInTopic OnMessage OnErrorMessage
 update (Publish x) = publish clientOutTopic x
-update (OnMessage (Success (_, InitModel m))) = put m
 update (Connect sender actionResult) = awaitResult actionResult sender
-update (OnMessage (Success (sender, FetchLatest t))) = do
+update (OnMessage (_, InitModel m)) = put m
+update (OnMessage (sender, FetchLatest t)) = do
     model <- get
 
     let payload = Just $ FetchCatalogArgs
@@ -71,7 +70,7 @@ update (OnMessage (Success (sender, FetchLatest t))) = do
 
     http_ model "/rpc/fetch_catalog" Http.POST payload sender
 
-update (OnMessage (Success (sender, GetThread GetThreadArgs {..}))) = do
+update (OnMessage (sender, GetThread GetThreadArgs {..})) = do
     model <- get
 
     http_ model path Http.GET (Nothing :: Maybe ()) sender
@@ -84,7 +83,7 @@ update (OnMessage (Success (sender, GetThread GetThreadArgs {..}))) = do
             <> "&boards.threads.board_thread_id=eq." <> toMisoString (show board_thread_id)
             <> "&boards.threads.posts.order=board_post_id.asc"
 
-update (OnMessage (Success (sender, Search query))) = do
+update (OnMessage (sender, Search query)) = do
     model <- get
 
     http_ model "/rpc/search_posts" Http.POST payload sender
@@ -95,7 +94,7 @@ update (OnMessage (Success (sender, Search query))) = do
             , max_rows = 100
             }
 
-update (OnMessage (Error msg)) =
+update (OnErrorMessage msg) =
     io_ $ consoleError ("Client Message decode failure: " <> toMisoString msg)
 
 
@@ -130,23 +129,3 @@ app = M.Component
     , M.scripts = []
     , M.mailbox = const Nothing
     }
-
-
-helper
-    :: (FromJSON a)
-    => Http.HttpResult
-    -> (a -> Effect model action)
-    -> Effect model action
-helper Http.Error _ = io_ $ consoleError "Http Error"
-helper (Http.HttpResponse status_code status_text (Just body)) continue = do
-    io_ $ do
-        consoleLog $ (toMisoString $ show $ status_code) <> " " <> (toMisoString $ status_text)
-        -- consoleLog $ (toMisoString $ show $ body)
-
-    let parsed = fromJSON body
-
-    case parsed of
-        Error msg -> io_ $ consoleError (toMisoString msg) -- alert Error component here, maybe have toast pop up
-        Success x -> continue x
-
-helper _ _ = return () -- No body, nothing to parse

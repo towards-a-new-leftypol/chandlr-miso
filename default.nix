@@ -1,20 +1,16 @@
-{ new_pkgs ? import <nixpkgs> {}, }:
-
-with (import (builtins.fetchTarball {
-  url = "https://github.com/dmjio/miso/archive/refs/tags/1.8.tar.gz";
-}) {});
+{ pkgs ? import <nixpkgs> {}, }:
 
 let
 
-  drv = pkgs.haskell.packages.ghcjs.callCabal2nix "chandlr" ./. {};
+  drv = pkgs.haskellPackages.callCabal2nix "chandlr" ./. {};
 
   env = drv.env.overrideAttrs (oldAttrs: {
     buildInputs = oldAttrs.buildInputs ++ [
+      pkgs.zlib
       pkgs.haskellPackages.cabal-install
-      new_pkgs.haskellPackages.ghcjs-dom
-      new_pkgs.haskellPackages.miso-from-html
-      new_pkgs.haskellPackages.hlint
-      # pkgs.haskellPackages.haskell-language-server # this doesn't work since old pkgs doesn't contain this package
+      pkgs.haskellPackages.miso-from-html
+      pkgs.haskellPackages.hlint
+      pkgs.haskellPackages.haskell-language-server # this doesn't work since old pkgs doesn't contain this package
     ];
   });
 

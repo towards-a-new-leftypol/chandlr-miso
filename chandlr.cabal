@@ -52,9 +52,6 @@ build-type:         Simple
 -- extra-source-files:
 
 executable chandlr
-    if !(impl(ghcjs) || arch(javascript) || arch(wasm32))
-        buildable: False
-
     -- .hs or .lhs file containing the Main module.
     main-is:          Main.hs
 
@@ -64,7 +61,8 @@ executable chandlr
         ghc-options:
             -no-hs-main -optl-mexec-model=reactor "-optl-Wl,--export=hs_start"
 
-    ghcjs-options:    -dedupe
+    if !(impl(ghcjs) || arch(javascript))
+        ghcjs-options:    -dedupe
 
     -- Modules included in this executable, other than Main.
     other-modules:    
@@ -98,7 +96,8 @@ executable chandlr
             Common.Parsing.PostPartType
             Common.Parsing.QuoteLinkParser
             Common.Parsing.BodyParser
-            Component.Search
+            Common.Component.Search
+            Common.Utils
             Network.Client
             Network.Http
             JSFFI.XHR
@@ -118,11 +117,13 @@ executable chandlr
                        network-uri,
                        containers,
                        parsec,
-                       ghc-experimental,
                        jsaddle,
                        html-parse,
                        miso,
                        mtl
+
+    if arch(wasm32)
+        build-depends: ghc-experimental
 
     -- Directories containing source files.
     hs-source-dirs:   src

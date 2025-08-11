@@ -17,7 +17,6 @@ import Data.Maybe (fromJust)
 import Language.Javascript.JSaddle
     ( JSVal
     , JSM
-    , JSString
     , (#)
     , ToJSVal (..)
     , jsg
@@ -26,45 +25,46 @@ import Language.Javascript.JSaddle
     , asyncFunction
     , FromJSVal (..)
     )
+import Miso.String (MisoString)
 
 
 newtype XMLHttpRequest = XMLHttpRequest JSVal
 
 
 newXMLHttpRequest :: JSM XMLHttpRequest
-newXMLHttpRequest = XMLHttpRequest <$> new (jsg ("XMLHttpRequest" :: JSString)) ()
+newXMLHttpRequest = XMLHttpRequest <$> new (jsg ("XMLHttpRequest" :: MisoString)) ()
 
 
 abort :: XMLHttpRequest -> JSM ()
 abort (XMLHttpRequest xhr) = do
-    _ <- xhr # ("abort" :: JSString) $ ([] :: [ JSString ])
+    _ <- xhr # ("abort" :: MisoString) $ ([] :: [ MisoString ])
     return ()
 
 
 send :: (ToJSVal a) => XMLHttpRequest -> a -> JSM ()
 send (XMLHttpRequest xhr) payload = do
-    _ <- xhr # ("send" :: JSString) $ ([ toJSVal payload ])
+    _ <- xhr # ("send" :: MisoString) $ ([ toJSVal payload ])
     return ()
 
 
-setRequestHeader :: XMLHttpRequest -> JSString -> JSString -> JSM ()
+setRequestHeader :: XMLHttpRequest -> MisoString -> MisoString -> JSM ()
 setRequestHeader (XMLHttpRequest xhr) k v = do
-    _ <- xhr # ("setRequestHeader" :: JSString) $ ([ k, v ])
+    _ <- xhr # ("setRequestHeader" :: MisoString) $ ([ k, v ])
     return ()
 
 
-open :: XMLHttpRequest -> JSString -> JSString -> JSM ()
+open :: XMLHttpRequest -> MisoString -> MisoString -> JSM ()
 open (XMLHttpRequest xhr) method url = do
-    _ <- xhr # ("open" :: JSString) $ ([ method, url ])
+    _ <- xhr # ("open" :: MisoString) $ ([ method, url ])
     return ()
 
 
-getStatusText :: XMLHttpRequest -> JSM JSString
+getStatusText :: XMLHttpRequest -> JSM MisoString
 getStatusText (XMLHttpRequest xhr) =
     getProp_ xhr "statusText" >>= return . fromJust
 
 
-getResponseText :: XMLHttpRequest -> JSM (Maybe JSString)
+getResponseText :: XMLHttpRequest -> JSM (Maybe MisoString)
 getResponseText (XMLHttpRequest xhr) = getProp_ xhr "responseText"
 
 
@@ -74,16 +74,16 @@ getStatus (XMLHttpRequest xhr) = getProp_ xhr "status" >>= return . fromJust
 
 addEventListener
   :: JSVal
-  -> JSString
+  -> MisoString
   -> JSM ()
   -> JSM ()
 addEventListener self name cb = do
-    _ <- self # ("addEventListener" :: JSString) $ (name, asyncFunction handle)
+    _ <- self # ("addEventListener" :: MisoString) $ (name, asyncFunction handle)
     return ()
 
     where
       handle _ _ _ = cb
 
 
-getProp_ :: (FromJSVal a) => JSVal -> JSString -> JSM (Maybe a)
+getProp_ :: (FromJSVal a) => JSVal -> MisoString -> JSM (Maybe a)
 getProp_ self name = self ! name >>= fromJSVal
