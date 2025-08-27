@@ -120,7 +120,8 @@ executable chandlr
                        jsaddle,
                        html-parse,
                        miso,
-                       mtl
+                       mtl,
+                       lens
 
     if arch(wasm32)
         build-depends: ghc-experimental

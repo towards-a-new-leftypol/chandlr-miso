@@ -7,6 +7,7 @@ module JSFFI.Saddle
     , getDocument
     , querySelector
     , getAttribute
+    , textContent
     ) where
 
 import Language.Javascript.JSaddle
@@ -14,9 +15,11 @@ import Language.Javascript.JSaddle
     , JSVal
     , JSString
     , jsg
+    , js
     , (#)
     , maybeNullOrUndefined
     )
+import Control.Lens.Operators ((^.))
 import Data.Text as T
 import Language.Javascript.JSaddle.String (textFromJSString)
 import Language.Javascript.JSaddle.Classes (fromJSVal)
@@ -35,6 +38,11 @@ querySelector (ParentNode n) s =
 getAttribute1 :: JSVal -> JSString -> JSM (Maybe JSVal)
 getAttribute1 x attr =
     (x # ("getAttribute" :: JSString) $ [attr]) >>= maybeNullOrUndefined
+
+
+textContent :: Element -> JSM (Maybe JSString)
+textContent (Element e) = (e ^. js ("textContent" :: JSString)) >>= fromJSVal
+
 
 -- Modified version returning Maybe JSString
 getAttribute :: JSVal -> JSString -> JSM (Maybe JSString)

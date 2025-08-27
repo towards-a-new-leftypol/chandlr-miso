@@ -15,7 +15,6 @@ import Network.URI (escapeURIString, unEscapeString, isAllowedInURI)
 import System.FilePath ((</>))
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import Control.Concurrent.MVar (MVar, newEmptyMVar)
-import Data.JSString.Text (textFromJSString)
 import Data.JSString (JSString)
 import Miso
     ( View (..)
@@ -28,7 +27,7 @@ import Miso
     , pushURI
     , uriSub
     , run
-    , startComponent
+    , miso
     , Component (..)
     , getURI
     , modify
@@ -42,9 +41,8 @@ import Miso
     )
 import Miso.String (MisoString, toMisoString, fromMisoString)
 import Servant.API
-import Data.Aeson (decodeStrict, FromJSON, Result(..))
+import Data.Aeson (decodeStrict, FromJSON)
 import Control.Monad.IO.Class (liftIO)
-import Language.Javascript.JSaddle (toJSString)
 import Language.Javascript.JSaddle.Monad (JSM)
 
 import Common.FrontEnd.Action
@@ -68,13 +66,14 @@ import JSFFI.Saddle
     , ParentNode (..)
     , querySelector
     , getAttribute
+    , textContent
     )
 import qualified Common.Utils as Utils
 
 data InitialData
     = CatalogData [ CatalogPost ]
     | SearchData [ CatalogPost ]
-    | ThreadData Site
+    | ThreadData Site [ Thread.PostWithBody ]
     | Nil
 
 pattern Sender :: Client.Sender
@@ -100,7 +99,7 @@ parseInitialDataUsingRoute model uri raw_json = either (const Nil) id routing_re
         h_latest _ = CatalogData $ maybe ([]) id $ decoded_thing
 
         h_thread :: Text -> Text -> BoardThreadId -> Model -> InitialData
-        h_thread _ _ _ _ = undefined
+        h_thread _ _ _ _ = maybe Nil (flip ThreadData $ undefined) $ decoded_thing
 
         h_search :: Maybe String -> Model -> InitialData
         h_search _ _ = undefined
@@ -166,6 +165,17 @@ getMetadata key = do
             (toMisoString <$>) <$> getAttribute el ("content" :: JSString)
 
 
+getScriptContents :: MisoString -> JSM (Maybe MisoString)
+getScriptContents className = do
+    doc <- (\(Document d) -> ParentNode d) <$> getDocument
+
+    mElem :: Maybe Element <- querySelector doc $ "." <> (fromMisoString className)
+
+    case mElem of
+        Nothing -> return Nothing
+        Just e -> (toMisoString <$>) <$> textContent e
+
+
 #if defined(wasm32_HOST_ARCH)
 foreign export javascript "hs_start" main :: IO ()
 #endif
@@ -193,7 +203,7 @@ mainMain = do
 
     uri <- getURI
 
-    initial_data <- getMetadata "initial-data" >>= return . maybe "" id
+    raw_initial_data <- getScriptContents "initial-data" >>= return . maybe "" id
 
     -- how to decode initial_data:
     --      - need to use runRoute but return some kind of new data type that wraps
@@ -203,18 +213,29 @@ mainMain = do
 
     search_var <- liftIO newEmptyMVar
 
-    let initial_model = initialModel
-          pg_api_root
-          pg_fetch_count
-          media_root
-          uri
-          now
-          search_var
+    let initial_model =
+            ( initialModel
+                pg_api_root
+                pg_fetch_count
+                media_root
+                uri
+                now
+                search_var
+            ) { initial_action = initialActionFromRoute initial_model uri }
+
+    let some_initial_data = parseInitialDataUsingRoute initial_model uri raw_initial_data
+
+    initial_data <-
+            case some_initial_data of
+                (ThreadData site _) ->
+                    liftIO $ Thread.getPostWithBodies site
+                    >>= return . ThreadData site
+                x -> return x
 
     let app :: MainComponent = Component
-            { model         = initial_model { initial_action = initialActionFromRoute initial_model uri }
+            { model         = initial_model
             , update        = mainUpdate
-            , view          = mainView
+            , view          = mainView initial_data
             , subs          = [ uriSub ChangeURI ]
             , events        = defaultEvents
             , styles = []
@@ -225,25 +246,45 @@ mainMain = do
             , mailbox = const Nothing
             }
 
-    startComponent app
+    miso $ const app
 
 
-mainView :: Model -> View Action
-mainView model = view
+mainView :: InitialData -> Model -> View Action
+mainView initial_data model = view
     where
         view = either (const page404) id $
             route (Proxy :: Proxy (Route (View Action))) handlers current_uri model
 
         handlers
-            =    (catalogView tc grid)
-            :<|> threadView
-            :<|> (searchView grid)
+            =    (catalogView tc (grid initial_data))
+            :<|> (threadView $ thread_model initial_data)
+            :<|> (searchView (grid initial_data))
 
         tc :: TC.TimeControl
         tc = TC.app 0
 
-        grid :: Grid.GridComponent
-        grid = Grid.app (media_root_ model)
+        thread_model :: InitialData -> Thread.Model
+        thread_model (ThreadData site posts_w_bodies) =
+            Thread.Model
+                { Thread.site = site
+                , Thread.media_root = media_root_ model
+                , Thread.post_bodies = posts_w_bodies
+                , Thread.current_time = current_time model
+                }
+        thread_model _ = error "Not Thread Data"
+
+        grid :: InitialData -> Grid.GridComponent
+        grid initial_data_ = Grid.app initial_model
+            where
+                initial_model = Grid.Model
+                    { Grid.display_items = initialItems initial_data_
+                    , media_root = media_root_ model
+                    }
+
+                initialItems :: InitialData -> [ CatalogPost ]
+                initialItems (CatalogData catalog_posts) = catalog_posts
+                initialItems (SearchData catalog_posts) = catalog_posts
+                initialItems _ = error "Not Catalog Data"
 
 
 mainUpdate :: Action -> Effect Model Action
