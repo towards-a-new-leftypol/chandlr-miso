@@ -18,7 +18,7 @@ import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
-import Data.Aeson (ToJSON, Result(..))
+import Data.Aeson (ToJSON)
 import Control.Monad.State (get, put)
 
 import Miso
@@ -30,7 +30,6 @@ import Miso
     , io, io_
     , subscribe
     , consoleError
-    , consoleLog
     )
 import qualified Miso as M
 import Miso.String (MisoString, toMisoString)
@@ -43,7 +42,7 @@ import Common.Network.ClientTypes
 awaitResult
     :: Http.HttpActionResult
     -> Sender
-    -> Effect Model Action
+    -> Effect parent Model Action
 awaitResult (_, resultVar) sender =
     withSink $ \sink -> do
         ctx <- askJSM
@@ -55,7 +54,7 @@ awaitResult (_, resultVar) sender =
                 sink $ Publish result
 
 
-update :: Action -> Effect Model Action
+update :: Action -> Effect parent Model Action
 update Initialize = subscribe clientInTopic OnMessage OnErrorMessage
 update (Publish x) = publish clientOutTopic x
 update (Connect sender actionResult) = awaitResult actionResult sender
@@ -106,7 +105,7 @@ http_
     -> Maybe a
     -> Sender
     -- -> JSM (Http.HttpActionResult b)
-    -> Effect Model Action
+    -> Effect parent Model Action
 http_ m apiPath method payload sender =
     io $ Connect sender <$> Http.http
         (pgApiRoot m <> apiPath)
@@ -115,7 +114,7 @@ http_ m apiPath method payload sender =
         payload
 
 
-app :: Component Model Action
+app :: Component parent Model Action
 app = M.Component
     { M.model = Uninitialized
     , M.update = update
@@ -128,4 +127,5 @@ app = M.Component
     , M.logLevel = M.DebugAll
     , M.scripts = []
     , M.mailbox = const Nothing
+    , M.bindings = []
     }

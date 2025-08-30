@@ -12,16 +12,15 @@ import Data.Proxy
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
 import Network.URI (escapeURIString, unEscapeString, isAllowedInURI)
-import System.FilePath ((</>))
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import Control.Concurrent.MVar (MVar, newEmptyMVar)
 import Data.JSString (JSString)
+import qualified Data.Map.Strict as Map
 import Miso
     ( View (..)
     , Effect
     , defaultEvents
     , LogLevel (DebugAll)
-    , route
     , consoleLog
     , consoleError
     , pushURI
@@ -38,9 +37,12 @@ import Miso
     , getComponentId
     , publish
     , subscribe
+    , ROOT
+    , URI (..)
     )
+import Servant.Miso.Router (route)
 import Miso.String (MisoString, toMisoString, fromMisoString)
-import Servant.API
+import Servant.API hiding (URI)
 import Data.Aeson (decodeStrict, FromJSON)
 import Control.Monad.IO.Class (liftIO)
 import Language.Javascript.JSaddle.Monad (JSM)
@@ -69,6 +71,7 @@ import JSFFI.Saddle
     , textContent
     )
 import qualified Common.Utils as Utils
+import Common.Component.BodyRender (getPostWithBodies)
 
 data InitialData
     = CatalogData [ CatalogPost ]
@@ -91,7 +94,12 @@ parseInitialDataUsingRoute model uri raw_json = either (const Nil) id routing_re
         decoded_thing :: (FromJSON a) => Maybe a
         decoded_thing = decodeStrict $ encodeUtf8 $ fromMisoString raw_json
 
-        routing_result = route (Proxy :: Proxy (Route (View Action))) handlers (const uri) model
+        routing_result =
+            route
+                (Proxy :: Proxy (Route (View Model Action)))
+                handlers
+                (const uri)
+                model
 
         handlers = h_latest :<|> h_thread :<|> h_search
 
@@ -107,7 +115,7 @@ parseInitialDataUsingRoute model uri raw_json = either (const Nil) id routing_re
 initialActionFromRoute :: Model -> URI -> Action
 initialActionFromRoute model uri = either (const NoAction) id routing_result
     where
-        routing_result = route (Proxy :: Proxy (Route (View Action))) handlers (const uri) model
+        routing_result = route (Proxy :: Proxy (Route (View Model Action))) handlers (const uri) model
 
         handlers = h_latest :<|> h_thread :<|> h_search
 
@@ -149,7 +157,6 @@ initialModel pgroot fetch_count media_root u t smv = Model
     , thread_message = Nothing
     , pg_api_root = pgroot
     , client_fetch_count = fetch_count
-    , my_component_id = 0
     }
 
 
@@ -223,14 +230,16 @@ mainMain = do
                 search_var
             ) { initial_action = initialActionFromRoute initial_model uri }
 
-    let some_initial_data = parseInitialDataUsingRoute initial_model uri raw_initial_data
+    let some_initial_data =
+            parseInitialDataUsingRoute
+                initial_model
+                uri
+                raw_initial_data
 
-    initial_data <-
+    let initial_data =
             case some_initial_data of
-                (ThreadData site _) ->
-                    liftIO $ Thread.getPostWithBodies site
-                    >>= return . ThreadData site
-                x -> return x
+                (ThreadData site _) -> ThreadData site (getPostWithBodies site)
+                x -> x
 
     let app :: MainComponent = Component
             { model         = initial_model
@@ -239,7 +248,7 @@ mainMain = do
             , subs          = [ uriSub ChangeURI ]
             , events        = defaultEvents
             , styles = []
-            , initialAction = Just Initialize
+            , initialAction = Nothing
             , mountPoint    = Nothing
             , logLevel      = DebugAll
             , scripts = []
@@ -249,18 +258,18 @@ mainMain = do
     miso $ const app
 
 
-mainView :: InitialData -> Model -> View Action
+mainView :: InitialData -> Model -> View Model Action
 mainView initial_data model = view
     where
         view = either (const page404) id $
-            route (Proxy :: Proxy (Route (View Action))) handlers current_uri model
+            route (Proxy :: Proxy (Route (View Model Action))) handlers current_uri model
 
         handlers
             =    (catalogView tc (grid initial_data))
             :<|> (threadView $ thread_model initial_data)
             :<|> (searchView (grid initial_data))
 
-        tc :: TC.TimeControl
+        tc :: TC.TimeControl Model
         tc = TC.app 0
 
         thread_model :: InitialData -> Thread.Model
@@ -273,7 +282,7 @@ mainView initial_data model = view
                 }
         thread_model _ = error "Not Thread Data"
 
-        grid :: InitialData -> Grid.GridComponent
+        grid :: InitialData -> Grid.GridComponent Model
         grid initial_data_ = Grid.app initial_model
             where
                 initial_model = Grid.Model
@@ -287,15 +296,11 @@ mainView initial_data model = view
                 initialItems _ = error "Not Catalog Data"
 
 
-mainUpdate :: Action -> Effect Model Action
+mainUpdate :: Action -> Effect ROOT Model Action
 mainUpdate NoAction = return ()
 mainUpdate Initialize = do
-    getComponentId HaveOwnComponentId
     subscribe Client.clientOutTopic ClientResponse OnErrorMessage
     subscribe Grid.catalogOutTopic GridMessage OnErrorMessage
-
-mainUpdate (HaveOwnComponentId component_id) = 
-    modify (\m -> m { my_component_id = component_id })
 
 mainUpdate ClientMounted = do
     model <- get
@@ -375,10 +380,10 @@ mainUpdate (GetThread Client.GetThreadArgs {..}) = do
     where
         new_current_uri :: Model -> URI
         new_current_uri m = (current_uri m)
-            { uriPath = fromMisoString website
-                    </> fromMisoString board_pathpart
-                    </> show board_thread_id
-            , uriQuery = ""
+            { uriPath = website
+                    </> board_pathpart
+                    </> (toMisoString $ show board_thread_id)
+            , uriQueryString = Map.empty
             }
 
 mainUpdate (ChangeURI uri) = do
@@ -401,7 +406,14 @@ mainUpdate (SearchResults query) = do
         new_current_uri :: Model -> URI
         new_current_uri m = (current_uri m)
             { uriPath = "/search"
-            , uriQuery = "?search=" ++ (escapeURIString isAllowedInURI $ fromMisoString query)
+            , uriQueryString = Map.singleton
+                "search"
+                $ Just
+                    (toMisoString $ escapeURIString isAllowedInURI $ fromMisoString query)
             }
 
 mainUpdate (NotifySearch query) = publish Search.searchTopic query
+
+
+(</>) :: MisoString -> MisoString -> MisoString
+(</>) a b = a <> "/" <> b
