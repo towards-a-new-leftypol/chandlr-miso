@@ -34,7 +34,6 @@ import Miso
     , get
     , put
     , issue
-    , getComponentId
     , publish
     , subscribe
     , ROOT
@@ -253,6 +252,7 @@ mainMain = do
             , logLevel      = DebugAll
             , scripts = []
             , mailbox = const Nothing
+            , bindings = []
             }
 
     miso $ const app
