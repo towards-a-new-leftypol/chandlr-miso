@@ -121,7 +121,8 @@ executable chandlr
                        html-parse,
                        miso,
                        mtl,
-                       lens
+                       lens,
+                       servant-miso-router
 
     if arch(wasm32)
         build-depends: ghc-experimental
