@@ -1,8 +1,14 @@
 { pkgs ? import <nixpkgs> {}, }:
 
 let
+  nixpkgs = pkgs;
+  servant-miso-router = import ./nix-support/servant-miso-router.nix { inherit nixpkgs; };
+  servant-miso-html = import ./nix-support/servant-miso-html.nix { inherit nixpkgs; };
 
-  drv = pkgs.haskellPackages.callCabal2nix "chandlr" ./. {};
+  drv = pkgs.haskellPackages.callCabal2nix "chandlr" ./. {
+    servant-miso-router = servant-miso-router;
+    #servant-miso-html = servant-miso-html;
+  };
 
   env = drv.env.overrideAttrs (oldAttrs: {
     buildInputs = oldAttrs.buildInputs ++ [
