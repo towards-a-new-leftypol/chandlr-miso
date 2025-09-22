@@ -30,6 +30,7 @@ import Miso
     , io, io_
     , subscribe
     , consoleError
+    , consoleLog
     )
 import qualified Miso as M
 import Miso.String (MisoString, toMisoString)
@@ -56,8 +57,12 @@ awaitResult (_, resultVar) sender =
 
 update :: Action -> Effect parent Model Action
 update Initialize = subscribe clientInTopic OnMessage OnErrorMessage
-update (Publish x) = publish clientOutTopic x
-update (Connect sender actionResult) = awaitResult actionResult sender
+update (Publish x) = do
+  io_ $ consoleLog "Client Publish result"
+  publish clientOutTopic x
+update (Connect sender actionResult) = do
+  io_ $ consoleLog "Client Connect"
+  awaitResult actionResult sender
 update (OnMessage (_, InitModel m)) = put m
 update (OnMessage (sender, FetchLatest t)) = do
     model <- get

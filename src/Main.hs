@@ -38,6 +38,7 @@ import Miso
     , subscribe
     , ROOT
     , URI (..)
+    , startComponent
     )
 import Servant.Miso.Router (route)
 import Miso.String (MisoString, toMisoString, fromMisoString)
@@ -227,7 +228,8 @@ mainMain = do
                 uri
                 now
                 search_var
-            ) { initial_action = initialActionFromRoute initial_model uri }
+            -- ) { initial_action = initialActionFromRoute initial_model uri }
+            ) { initial_action = GetThread $ Client.GetThreadArgs "leftypol.org" "leftypol" 2482880 }
 
     let some_initial_data =
             parseInitialDataUsingRoute
@@ -247,7 +249,8 @@ mainMain = do
             , subs          = [ uriSub ChangeURI ]
             , events        = defaultEvents
             , styles = []
-            , initialAction = Nothing
+            -- , initialAction = Just $ initialActionFromRoute initial_model uri
+            , initialAction = Just Initialize
             , mountPoint    = Nothing
             , logLevel      = DebugAll
             , scripts = []
@@ -255,7 +258,8 @@ mainMain = do
             , bindings = []
             }
 
-    miso $ const app
+    -- miso $ const app
+    startComponent app
 
 
 mainView :: InitialData -> Model -> View Model Action
@@ -280,7 +284,7 @@ mainView initial_data model = view
                 , Thread.post_bodies = posts_w_bodies
                 , Thread.current_time = current_time model
                 }
-        thread_model _ = error "Not Thread Data"
+        thread_model _ = Thread.Uninitialized
 
         grid :: InitialData -> Grid.GridComponent Model
         grid initial_data_ = Grid.app initial_model
@@ -371,9 +375,11 @@ mainUpdate (GoToTime t) = do
 mainUpdate (GetThread Client.GetThreadArgs {..}) = do
     io_ $ consoleLog $ "Thread " <> (toMisoString $ show board_thread_id)
 
-    model <- get
+    -- model <- get
 
-    io_ $ pushURI $ new_current_uri model
+    -- io_ $ pushURI $ new_current_uri model
+
+    modify (\m -> m { current_uri = new_current_uri m })
 
     publish Client.clientInTopic (SenderThread, Client.GetThread Client.GetThreadArgs {..})
 
