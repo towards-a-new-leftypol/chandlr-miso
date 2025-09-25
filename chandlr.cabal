@@ -131,6 +131,9 @@ executable chandlr
     if arch(wasm32)
         build-depends: ghc-experimental
 
+    cpp-options:
+      -DFRONT_END
+
     -- Directories containing source files.
     hs-source-dirs:   src
 
