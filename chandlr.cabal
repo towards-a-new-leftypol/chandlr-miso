@@ -85,6 +85,8 @@ executable chandlr
             Common.FrontEnd.Model
             Common.FrontEnd.Routes
             Common.FrontEnd.Views
+            Common.FrontEnd.Update
+            Common.FrontEnd.JSONSettings
             Common.Network.BoardType
             Common.Network.CatalogPostType
             Common.Network.ClientTypes

@@ -1,115 +1,44 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
 import Data.Proxy
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
-import Network.URI (escapeURIString, unEscapeString, isAllowedInURI)
-import Data.Time.Clock (UTCTime, getCurrentTime)
-import Control.Concurrent.MVar (MVar, newEmptyMVar)
-import Data.JSString (JSString)
-import qualified Data.Map.Strict as Map
+import Data.Time.Clock (getCurrentTime)
 import Miso
     ( View (..)
-    , Effect
-    , defaultEvents
-    , LogLevel (DebugAll)
     , consoleLog
-    , consoleError
-    , pushURI
-    , uriSub
     , run
     , miso
-    , Component (..)
     , getURI
-    , modify
-    , io_
-    , get
-    , put
-    , issue
-    , publish
-    , subscribe
-    , ROOT
     , URI (..)
     )
 import Servant.Miso.Router (route)
 import Miso.String (MisoString, toMisoString, fromMisoString)
 import Servant.API hiding (URI)
-import Data.Aeson (decodeStrict, FromJSON)
+import Data.Aeson (decodeStrict)
 import Control.Monad.IO.Class (liftIO)
 import Language.Javascript.JSaddle.Monad (JSM)
+import Network.URI (unEscapeString)
 
 import Common.FrontEnd.Action
 import Common.FrontEnd.Routes
-import qualified Network.Client as Client
 import qualified Common.Network.ClientTypes as Client
-import qualified Common.Component.Thread as Thread
-import qualified Common.Component.TimeControl as TC
-import qualified Common.Component.Search.SearchTypes as Search
-import qualified Common.Component.CatalogGrid.GridTypes as Grid
-import qualified Common.Component.CatalogGrid as Grid
-import Common.FrontEnd.MainComponent (MainComponent)
-import Common.Network.SiteType (Site, fromCatalogPost)
-import Common.FrontEnd.Views
+import Common.FrontEnd.MainComponent
 import Common.FrontEnd.Model
-import Common.Network.CatalogPostType (CatalogPost)
 import JSFFI.Saddle
     ( getDocument
     , Element (..)
     , Document (..)
     , ParentNode (..)
     , querySelector
-    , getAttribute
     , textContent
     )
-import qualified Common.Utils as Utils
-import Common.Component.BodyRender (getPostWithBodies)
-
-data InitialData
-    = CatalogData [ CatalogPost ]
-    | SearchData [ CatalogPost ]
-    | ThreadData Site [ Thread.PostWithBody ]
-    | Nil
-
-pattern Sender :: Client.Sender
-pattern Sender = "main"
-
-pattern SenderLatest :: Client.Sender
-pattern SenderLatest = "main-latest"
-
-pattern SenderThread :: Client.Sender
-pattern SenderThread = "main-thread"
-
-parseInitialDataUsingRoute :: Model -> URI -> MisoString -> InitialData
-parseInitialDataUsingRoute model uri raw_json = either (const Nil) id routing_result
-    where
-        decoded_thing :: (FromJSON a) => Maybe a
-        decoded_thing = decodeStrict $ encodeUtf8 $ fromMisoString raw_json
-
-        routing_result =
-            route
-                (Proxy :: Proxy (Route (View Model Action)))
-                handlers
-                (const uri)
-                model
-
-        handlers = h_latest :<|> h_thread :<|> h_search
-
-        h_latest :: Model -> InitialData
-        h_latest _ = CatalogData $ maybe ([]) id $ decoded_thing
-
-        h_thread :: Text -> Text -> BoardThreadId -> Model -> InitialData
-        h_thread _ _ _ _ = maybe Nil (flip ThreadData $ undefined) $ decoded_thing
-
-        h_search :: Maybe String -> Model -> InitialData
-        h_search _ _ = undefined
+import Common.FrontEnd.JSONSettings (fromHtml)
 
 initialActionFromRoute :: Model -> URI -> Action
 initialActionFromRoute model uri = either (const NoAction) id routing_result
@@ -139,38 +68,6 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
                 unescaped_search_query = toMisoString $ unEscapeString $ search_query
 
 
-initialModel
-    :: MisoString
-    -> Int
-    -> MisoString
-    -> URI
-    -> UTCTime
-    -> MVar MisoString
-    -> Model
-initialModel pgroot fetch_count media_root u t smv = Model
-    { current_uri = u
-    , media_root_ = media_root
-    , current_time = t
-    , search_term = ""
-    , initial_action = Initialize
-    , thread_message = Nothing
-    , pg_api_root = pgroot
-    , client_fetch_count = fetch_count
-    }
-
-
-getMetadata :: MisoString -> JSM (Maybe MisoString)
-getMetadata key = do
-    doc <- (\(Document d) -> ParentNode d) <$> getDocument
-
-    mElem :: Maybe Element <- querySelector doc $ "meta[name='" <> (fromMisoString key) <> "']"
-
-    case mElem of
-        Nothing -> return Nothing
-        Just (Element el) ->
-            (toMisoString <$>) <$> getAttribute el ("content" :: JSString)
-
-
 getScriptContents :: MisoString -> JSM (Maybe MisoString)
 getScriptContents className = do
     doc <- (\(Document d) -> ParentNode d) <$> getDocument
@@ -180,6 +77,24 @@ getScriptContents className = do
     case mElem of
         Nothing -> return Nothing
         Just e -> (toMisoString <$>) <$> textContent e
+
+
+getInitialDataPayload :: JSM InitialDataPayload
+getInitialDataPayload = do
+    rawData <- getScriptContents "initial-data" >>= return . maybe "" id
+
+    maybe
+        ( do
+            t <- liftIO getCurrentTime
+            return $ InitialDataPayload t Nil
+        )
+        return
+        (decode rawData)
+
+
+    where
+        decode :: MisoString -> Maybe InitialDataPayload
+        decode = decodeStrict . encodeUtf8 . fromMisoString
 
 
 #if defined(wasm32_HOST_ARCH)
@@ -193,227 +108,17 @@ mainMain :: JSM ()
 mainMain = do
     consoleLog "Haskell begin."
 
-    pg_api_root <- getMetadata "postgrest-root" >>=
-        return . maybe "http://localhost:3000" id
-    consoleLog $ "pg_api_root: " <> pg_api_root
-
-    pg_fetch_count <- getMetadata "postgrest-fetch-count" >>=
-        return . maybe 1000 fromMisoString
-
-    media_root <- getMetadata "media-root" >>=
-        return . maybe "undefined" id
-
-    consoleLog $ "media_root: " <> media_root
-
-    now <- liftIO getCurrentTime
+    jsonSettings <- fromHtml
 
     uri <- getURI
 
-    raw_initial_data <- getScriptContents "initial-data" >>= return . maybe "" id
+    initialDataPayload <- getInitialDataPayload
 
-    -- how to decode initial_data:
-    --      - need to use runRoute but return some kind of new data type that wraps
-    --      our data for each view, with constructors like InitialCatalog [ CatalogPost ] etc
+    -- WTF is going on here?
     --
-    --      - to use this, need to pass in a Model
+    -- let initial_data =
+    --         case some_initial_data of
+    --             (ThreadData site _) -> ThreadData site (getPostWithBodies site)
+    --             x -> x
 
-    search_var <- liftIO newEmptyMVar
-
-    let initial_model =
-            ( initialModel
-                pg_api_root
-                pg_fetch_count
-                media_root
-                uri
-                now
-                search_var
-            ) { initial_action = initialActionFromRoute initial_model uri }
-
-    let some_initial_data =
-            parseInitialDataUsingRoute
-                initial_model
-                uri
-                raw_initial_data
-
-    let initial_data =
-            case some_initial_data of
-                (ThreadData site _) -> ThreadData site (getPostWithBodies site)
-                x -> x
-
-    let app :: MainComponent = Component
-            { model         = initial_model
-            , update        = mainUpdate
-            , view          = mainView initial_data
-            , subs          = [ uriSub ChangeURI ]
-            , events        = defaultEvents
-            , styles = []
-            , initialAction = Nothing
-            , mountPoint    = Nothing
-            , logLevel      = DebugAll
-            , scripts = []
-            , mailbox = const Nothing
-            , bindings = []
-            }
-
-    miso $ const app
-
-
-mainView :: InitialData -> Model -> View Model Action
-mainView initial_data model = view
-    where
-        view = either (const page404) id $
-            route (Proxy :: Proxy (Route (View Model Action))) handlers current_uri model
-
-        handlers
-            =    (catalogView tc (grid initial_data))
-            :<|> (threadView $ thread_model initial_data)
-            :<|> (searchView (grid initial_data))
-
-        tc :: TC.TimeControl Model
-        tc = TC.app 0
-
-        thread_model :: InitialData -> Thread.Model
-        thread_model (ThreadData site posts_w_bodies) =
-            Thread.Model
-                { Thread.site = site
-                , Thread.media_root = media_root_ model
-                , Thread.post_bodies = posts_w_bodies
-                , Thread.current_time = current_time model
-                }
-        thread_model _ = error "Not Thread Data"
-
-        grid :: InitialData -> Grid.GridComponent Model
-        grid initial_data_ = Grid.app initial_model
-            where
-                initial_model = Grid.Model
-                    { Grid.display_items = initialItems initial_data_
-                    , media_root = media_root_ model
-                    }
-
-                initialItems :: InitialData -> [ CatalogPost ]
-                initialItems (CatalogData catalog_posts) = catalog_posts
-                initialItems (SearchData catalog_posts) = catalog_posts
-                initialItems _ = error "Not Catalog Data"
-
-
-mainUpdate :: Action -> Effect ROOT Model Action
-mainUpdate NoAction = return ()
-mainUpdate Initialize = do
-    subscribe Client.clientOutTopic ClientResponse OnErrorMessage
-    subscribe Grid.catalogOutTopic GridMessage OnErrorMessage
-
-mainUpdate ClientMounted = do
-    model <- get
-
-    io_ $ consoleLog "Http Client Mounted!"
-
-    publish
-        Client.clientInTopic
-        ( Sender
-        , Client.InitModel $
-            Client.Model
-                (pg_api_root model)
-                (client_fetch_count model)
-        )
-
-    issue $ initial_action model
-    modify $ \m -> m { initial_action = NoAction }
-
-mainUpdate ClientUnmounted = io_ $ consoleLog "Http Client Unmounted!"
-
-mainUpdate ThreadViewMounted = do
-    io_ $ consoleLog "ThreadViewMounted"
-
-    model <- get
-
-    maybe
-        (io_ $ consoleLog "No thread_message available for sending in Main Model")
-        (publish Thread.threadTopic)
-        (thread_message model)
-
-mainUpdate (GridMessage (Grid.SelectThread catalog_post)) = do
-    modify
-        ( \m -> m
-            { thread_message = Just $
-                Thread.RenderSite (media_root_ m) (fromCatalogPost catalog_post)
-            }
-        )
-
-    issue $ GetThread $ mkGetThread catalog_post
-
-mainUpdate (OnErrorMessage msg) =
-    io_ $ consoleError ("Main Component OnErrorMessage decode failure: " <> toMisoString msg)
-
-mainUpdate (ClientResponse (Client.ReturnResult SenderLatest result)) =
-    Utils.helper result $ \catalog_posts ->
-        publish Grid.catalogInTopic $ Grid.DisplayItems catalog_posts
-
-mainUpdate (ClientResponse (Client.ReturnResult SenderThread result)) =
-    do
-        io_ $ consoleLog $ SenderThread <> " - Has result. Storing result in model."
-
-        Utils.helper result $ \sites ->
-            modify
-                ( \m -> m
-                    { thread_message = Just $
-                        Thread.RenderSite (media_root_ m) (head sites)
-                    }
-                )
-
-        issue ThreadViewMounted
-
-mainUpdate (ClientResponse (Client.ReturnResult _ _)) = return ()
-
-mainUpdate (GoToTime t) = do
-    modify (\m -> m { current_time = t })
-    publish Client.clientInTopic (SenderLatest, Client.FetchLatest t)
-
-mainUpdate (GetThread Client.GetThreadArgs {..}) = do
-    io_ $ consoleLog $ "Thread " <> (toMisoString $ show board_thread_id)
-
-    model <- get
-
-    io_ $ pushURI $ new_current_uri model
-
-    publish Client.clientInTopic (SenderThread, Client.GetThread Client.GetThreadArgs {..})
-
-    where
-        new_current_uri :: Model -> URI
-        new_current_uri m = (current_uri m)
-            { uriPath = website
-                    </> board_pathpart
-                    </> (toMisoString $ show board_thread_id)
-            , uriQueryString = Map.empty
-            }
-
-mainUpdate (ChangeURI uri) = do
-    modify (\m -> m { current_uri = uri })
-    io_ $ consoleLog $ "ChangeURI! " <> (toMisoString $ show uri)
-
-
-mainUpdate (SearchResults query) = do
-    model <- get
-
-    let new_uri :: URI = new_current_uri model
-
-    io_ $ do
-        consoleLog $ "SearchResults new uri: " <> (toMisoString $ show new_uri)
-        pushURI new_uri
-
-    put model { current_uri = new_uri }
-
-    where
-        new_current_uri :: Model -> URI
-        new_current_uri m = (current_uri m)
-            { uriPath = "/search"
-            , uriQueryString = Map.singleton
-                "search"
-                $ Just
-                    (toMisoString $ escapeURIString isAllowedInURI $ fromMisoString query)
-            }
-
-mainUpdate (NotifySearch query) = publish Search.searchTopic query
-
-
-(</>) :: MisoString -> MisoString -> MisoString
-(</>) a b = a <> "/" <> b
+    miso $ const $ app jsonSettings uri initialDataPayload
