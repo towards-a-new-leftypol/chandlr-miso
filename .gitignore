@@ -4,3 +4,4 @@ cabal.project.local
 static/browser_wasi_shim
 static/chandlr.wasm
 static/wasm.js
+static/all.js

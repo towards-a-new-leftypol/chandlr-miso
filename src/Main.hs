@@ -7,7 +7,6 @@ module Main where
 
 import Data.Proxy
 import Data.Text (Text)
-import Data.Text.Encoding (encodeUtf8)
 import Data.Time.Clock (getCurrentTime)
 import Miso
     ( View (..)
@@ -20,10 +19,12 @@ import Miso
 import Servant.Miso.Router (route)
 import Miso.String (MisoString, toMisoString, fromMisoString)
 import Servant.API hiding (URI)
-import Data.Aeson (decodeStrict)
+import Data.Aeson (eitherDecodeStrict)
 import Control.Monad.IO.Class (liftIO)
 import Language.Javascript.JSaddle.Monad (JSM)
 import Network.URI (unEscapeString)
+import Data.Maybe (fromMaybe)
+import qualified Data.ByteString.Base64 as B64
 
 import Common.FrontEnd.Action
 import Common.FrontEnd.Routes
@@ -81,20 +82,21 @@ getScriptContents className = do
 
 getInitialDataPayload :: JSM InitialDataPayload
 getInitialDataPayload = do
-    rawData <- getScriptContents "initial-data" >>= return . maybe "" id
+    maybeRawData <- getScriptContents "initial-data"
 
-    maybe
-        ( do
-            t <- liftIO getCurrentTime
-            return $ InitialDataPayload t Nil
+    let rawData = (B64.decode $ fromMisoString (fromMaybe "" maybeRawData)) >>= eitherDecodeStrict
+    
+    either
+         ( \err -> do
+             consoleLog $ "!!!! Could not parse initial data! Falling back to default values. Error: " <> toMisoString err
+             t <- liftIO getCurrentTime
+             return $ InitialDataPayload t Nil
+         )
+         ( \json -> do
+            consoleLog "Successfully loaded base64 encoded JSON data from page"
+            return json
         )
-        return
-        (decode rawData)
-
-
-    where
-        decode :: MisoString -> Maybe InitialDataPayload
-        decode = decodeStrict . encodeUtf8 . fromMisoString
+        rawData 
 
 
 #if defined(wasm32_HOST_ARCH)

@@ -15,6 +15,7 @@ import Language.Javascript.JSaddle
     , JSVal
     , JSString
     , jsg
+    , jsg1
     , js
     , (#)
     , maybeNullOrUndefined
@@ -59,3 +60,7 @@ getAttribute x attr =
                   -- Pure conversion for error message
                   let attrText = textFromJSString attr
                   fail $ "Attribute '" ++ T.unpack attrText ++ "' returned non-string value"
+
+-- decode base64
+-- aToB :: JSString -> JSM (Maybe JSString)
+-- aToB s = jsg1 ("atob" :: JSString) s >>= fromJSVal

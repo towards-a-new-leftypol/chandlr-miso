@@ -126,7 +126,8 @@ executable chandlr
                        miso,
                        mtl,
                        lens,
-                       servant-miso-router
+                       servant-miso-router,
+                       base64-bytestring
 
     if arch(wasm32)
         build-depends: ghc-experimental
