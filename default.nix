@@ -16,7 +16,7 @@ let
       pkgs.haskellPackages.cabal-install
       pkgs.haskellPackages.miso-from-html
       pkgs.haskellPackages.hlint
-      pkgs.haskellPackages.haskell-language-server # this doesn't work since old pkgs doesn't contain this package
+      pkgs.haskellPackages.haskell-language-server
     ];
   });
 

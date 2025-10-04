@@ -62,7 +62,7 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
         h_search :: Maybe String -> Model -> Action
         h_search Nothing m = GoToTime $ current_time m
         h_search (Just search_query) m
-            | search_term m == unescaped_search_query = SearchResults unescaped_search_query
+            | search_term m == unescaped_search_query = SearchResults (unescaped_search_query, [])
             | otherwise = NotifySearch $ unescaped_search_query
 
             where
