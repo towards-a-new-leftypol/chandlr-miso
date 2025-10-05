@@ -1,13 +1,11 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
 import Data.Proxy
 import Data.Text (Text)
-import Data.Time.Clock (getCurrentTime)
 import Miso
     ( View (..)
     , consoleLog
@@ -17,29 +15,18 @@ import Miso
     , URI (..)
     )
 import Servant.Miso.Router (route)
-import Miso.String (MisoString, toMisoString, fromMisoString)
+import Miso.String (toMisoString)
 import Servant.API hiding (URI)
-import Data.Aeson (eitherDecodeStrict)
-import Control.Monad.IO.Class (liftIO)
 import Language.Javascript.JSaddle.Monad (JSM)
 import Network.URI (unEscapeString)
-import Data.Maybe (fromMaybe)
-import qualified Data.ByteString.Base64 as B64
 
 import Common.FrontEnd.Action
 import Common.FrontEnd.Routes
 import qualified Common.Network.ClientTypes as Client
 import Common.FrontEnd.MainComponent
 import Common.FrontEnd.Model
-import JSFFI.Saddle
-    ( getDocument
-    , Element (..)
-    , Document (..)
-    , ParentNode (..)
-    , querySelector
-    , textContent
-    )
 import Common.FrontEnd.JSONSettings (fromHtml)
+import Common.Utils (getInitialDataPayload)
 
 initialActionFromRoute :: Model -> URI -> Action
 initialActionFromRoute model uri = either (const NoAction) id routing_result
@@ -67,36 +54,6 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
 
             where
                 unescaped_search_query = toMisoString $ unEscapeString $ search_query
-
-
-getScriptContents :: MisoString -> JSM (Maybe MisoString)
-getScriptContents className = do
-    doc <- (\(Document d) -> ParentNode d) <$> getDocument
-
-    mElem :: Maybe Element <- querySelector doc $ "." <> (fromMisoString className)
-
-    case mElem of
-        Nothing -> return Nothing
-        Just e -> (toMisoString <$>) <$> textContent e
-
-
-getInitialDataPayload :: JSM InitialDataPayload
-getInitialDataPayload = do
-    maybeRawData <- getScriptContents "initial-data"
-
-    let rawData = (B64.decode $ fromMisoString (fromMaybe "" maybeRawData)) >>= eitherDecodeStrict
-    
-    either
-         ( \err -> do
-             consoleLog $ "!!!! Could not parse initial data! Falling back to default values. Error: " <> toMisoString err
-             t <- liftIO getCurrentTime
-             return $ InitialDataPayload t Nil
-         )
-         ( \json -> do
-            consoleLog "Successfully loaded base64 encoded JSON data from page"
-            return json
-        )
-        rawData 
 
 
 #if defined(wasm32_HOST_ARCH)

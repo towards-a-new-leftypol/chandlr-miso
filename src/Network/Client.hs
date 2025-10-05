@@ -2,7 +2,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE NamedFieldPuns #-}
 
 module Network.Client
     ( Http.HttpActionResult
@@ -117,6 +116,7 @@ http_ m apiPath method payload sender =
 app :: Component parent Model Action
 app = M.Component
     { M.model = Uninitialized
+    , M.initialModel = Nothing
     , M.update = update
     , M.view = const $ text ""
     , M.subs = []
