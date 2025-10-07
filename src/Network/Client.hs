@@ -116,7 +116,7 @@ http_ m apiPath method payload sender =
 app :: Component parent Model Action
 app = M.Component
     { M.model = Uninitialized
-    , M.initialModel = Nothing
+    , M.hydrateModel = Nothing
     , M.update = update
     , M.view = const $ text ""
     , M.subs = []

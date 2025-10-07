@@ -15,10 +15,14 @@ import Miso
     , URI (..)
     )
 import Servant.Miso.Router (route)
-import Miso.String (toMisoString)
+import Miso.String (toMisoString, fromMisoString)
 import Servant.API hiding (URI)
 import Language.Javascript.JSaddle.Monad (JSM)
 import Network.URI (unEscapeString)
+import Data.Time.Clock (getCurrentTime)
+import Data.Time.Format.ISO8601 (iso8601ParseM)
+import Control.Monad.IO.Class (liftIO)
+import Data.Either (fromRight)
 
 import Common.FrontEnd.Action
 import Common.FrontEnd.Routes
@@ -26,12 +30,18 @@ import qualified Common.Network.ClientTypes as Client
 import Common.FrontEnd.MainComponent
 import Common.FrontEnd.Model
 import Common.FrontEnd.JSONSettings (fromHtml)
-import Common.Utils (getInitialDataPayload)
+import Common.FrontEnd.Types (InitialDataPayload (InitialDataPayload))
+import Utils (getMetadata)
 
 initialActionFromRoute :: Model -> URI -> Action
-initialActionFromRoute model uri = either (const NoAction) id routing_result
+initialActionFromRoute model uri = fromRight NoAction routing_result
     where
-        routing_result = route (Proxy :: Proxy (Route (View Model Action))) handlers (const uri) model
+        routing_result =
+            route
+                (Proxy :: Proxy (Route (View Model Action)))
+                handlers
+                (const uri)
+                model
 
         handlers = h_latest :<|> h_thread :<|> h_search
 
@@ -49,16 +59,19 @@ initialActionFromRoute model uri = either (const NoAction) id routing_result
         h_search :: Maybe String -> Model -> Action
         h_search Nothing m = GoToTime $ current_time m
         h_search (Just search_query) m
-            | search_term m == unescaped_search_query = SearchResults (unescaped_search_query, [])
+            | search_term m == unescaped_search_query =
+                SearchResults (unescaped_search_query, [])
             | otherwise = NotifySearch $ unescaped_search_query
 
             where
-                unescaped_search_query = toMisoString $ unEscapeString $ search_query
+                unescaped_search_query =
+                    toMisoString $ unEscapeString $ search_query
 
 
 #if defined(wasm32_HOST_ARCH)
 foreign export javascript "hs_start" main :: IO ()
 #endif
+
 
 main :: IO ()
 main = run mainMain
@@ -71,13 +84,8 @@ mainMain = do
 
     uri <- getURI
 
-    initialDataPayload <- getInitialDataPayload
+    currentTime <- getMetadata "timestamp"
+        >>= maybe (liftIO getCurrentTime) (iso8601ParseM . fromMisoString)
 
-    -- WTF is going on here?
-    --
-    -- let initial_data =
-    --         case some_initial_data of
-    --             (ThreadData site _) -> ThreadData site (getPostWithBodies site)
-    --             x -> x
-
-    miso $ const $ app jsonSettings uri initialDataPayload
+    miso $ const $ app jsonSettings uri $
+        InitialDataPayload currentTime undefined

@@ -8,6 +8,7 @@ module JSFFI.Saddle
     , querySelector
     , getAttribute
     , textContent
+    , encodeURIComponent
     ) where
 
 import Language.Javascript.JSaddle
@@ -23,7 +24,7 @@ import Language.Javascript.JSaddle
 import Control.Lens.Operators ((^.))
 import Data.Text as T
 import Language.Javascript.JSaddle.String (textFromJSString)
-import Language.Javascript.JSaddle.Classes (fromJSVal)
+import Language.Javascript.JSaddle.Classes (fromJSVal, fromJSValUnchecked)
 
 newtype Document = Document JSVal
 newtype Element = Element JSVal
@@ -60,6 +61,9 @@ getAttribute x attr =
                   -- Pure conversion for error message
                   let attrText = textFromJSString attr
                   fail $ "Attribute '" ++ T.unpack attrText ++ "' returned non-string value"
+
+encodeURIComponent :: JSString -> JSM JSString
+encodeURIComponent s = jsg1 ("encodeURIComponent" :: JSString) s >>= fromJSValUnchecked
 
 -- decode base64
 -- aToB :: JSString -> JSM (Maybe JSString)

@@ -77,6 +77,7 @@ executable chandlr
             Common.Component.Thread.Files
             Common.Component.Thread.Intro
             Common.Component.Thread.Model
+            Common.Component.Thread.Types
             Common.Component.Thread
             Common.Component.TimeControl
             Common.Component.CatalogGrid.GridTypes
@@ -103,6 +104,7 @@ executable chandlr
             Common.Parsing.BodyParser
             Common.Component.Search
             Common.Utils
+            Utils
             Network.Client
             Network.Http
             JSFFI.XHR
