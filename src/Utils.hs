@@ -39,6 +39,7 @@ import Common.FrontEnd.Types
 import Common.FrontEnd.Routes (Route)
 import Common.FrontEnd.Model (Model)
 import Common.FrontEnd.Action (Action)
+import Common.FrontEnd.JSONSettings
 
 getScriptContents :: MisoString -> JSM (Maybe MisoString)
 getScriptContents className = do
@@ -55,7 +56,7 @@ getInitialDataPayload :: JSM InitialDataPayload
 getInitialDataPayload = do
     maybeRawData <- getScriptContents "initial-data"
 
-    let rawData = (B64.decode $ fromMisoString (fromMaybe "" maybeRawData)) >>= eitherDecodeStrict
+    let decoded = B64.decode (fromMisoString (fromMaybe "" maybeRawData)) >>= eitherDecodeStrict
 
     either
          ( \err -> do
@@ -67,7 +68,7 @@ getInitialDataPayload = do
             consoleLog "Successfully loaded base64 encoded JSON data from page"
             return json
         )
-        rawData
+        decoded
 
 
 data PageType = Catalog | Search | Thread
@@ -109,3 +110,26 @@ getMetadata key = do
 getMediaRoot :: JSM MisoString
 getMediaRoot = getMetadata "media-root" >>=
     return . maybe "undefined" id
+
+
+settingsFromHtml :: JSM JSONSettings
+settingsFromHtml = do
+    postgrestUrl <- getMetadata "postgrest-url" >>=
+        return . maybe "http://localhost:3000" id
+    consoleLog $ "postgrest-url " <> postgrestUrl
+
+    postgrestFetchCount <- getMetadata "postgrest-fetch-count" >>=
+        return . maybe 1000 fromMisoString
+
+    mediaRoot <- getMediaRoot
+
+    consoleLog $ "media_root: " <> mediaRoot
+
+    return JSONSettings
+        { postgrest_url = postgrestUrl
+        , jwt = ""
+        , postgrest_fetch_count = postgrestFetchCount
+        , media_root = mediaRoot
+        , static_serve_path = ""
+        , static_serve_url_root = ""
+        }

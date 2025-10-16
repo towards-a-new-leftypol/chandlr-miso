@@ -10,16 +10,13 @@ import Miso
     , miso
     , getURI
     )
-import Miso.String (fromMisoString)
 import Language.Javascript.JSaddle.Monad (JSM)
-import Data.Time.Clock (getCurrentTime)
-import Data.Time.Format.ISO8601 (iso8601ParseM)
 import Control.Monad.IO.Class (liftIO)
 
 import Common.FrontEnd.MainComponent
-import Common.FrontEnd.JSONSettings (fromHtml)
-import Common.FrontEnd.Types (InitialDataPayload (InitialDataPayload))
-import Utils (getMetadata)
+import Common.FrontEnd.Types
+import Utils (settingsFromHtml, getInitialDataPayload)
+import Data.IORef (newIORef)
 
 #if defined(wasm32_HOST_ARCH)
 foreign export javascript "hs_start" main :: IO ()
@@ -33,12 +30,15 @@ mainMain :: JSM ()
 mainMain = do
     consoleLog "Haskell begin."
 
-    jsonSettings <- fromHtml
+    jsonSettings <- settingsFromHtml
 
     uri <- getURI
 
-    currentTime <- getMetadata "timestamp"
-        >>= maybe (liftIO getCurrentTime) (iso8601ParseM . fromMisoString)
+    -- currentTime <- getMetadata "timestamp"
+    --     >>= maybe (liftIO getCurrentTime) (iso8601ParseM . fromMisoString)
 
-    miso $ const $ app jsonSettings uri $
-        InitialDataPayload currentTime undefined
+    ctx <- AppInitCtx uri jsonSettings <$> getInitialDataPayload
+
+    ctxRef <- liftIO $ newIORef ctx
+
+    miso $ const $ app ctxRef
