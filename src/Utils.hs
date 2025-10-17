@@ -6,17 +6,12 @@ module Utils where
 import Data.Aeson (eitherDecodeStrict)
 import Miso
     ( consoleLog
-    , View
-    , URI
     )
 import Miso.String
     ( MisoString
     , toMisoString
-    , MisoString
-    , toMisoString
     , fromMisoString
     )
-import Servant.Miso.Router (route)
 import Language.Javascript.JSaddle.Monad (JSM)
 import Data.Time.Clock (getCurrentTime)
 import JSFFI.Saddle
@@ -31,14 +26,8 @@ import JSFFI.Saddle
 import qualified Data.ByteString.Base64 as B64
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (fromMaybe)
-import Data.Proxy (Proxy (..))
-import Servant.API hiding (URI)
-import Data.Either (fromRight)
 
 import Common.FrontEnd.Types
-import Common.FrontEnd.Routes (Route)
-import Common.FrontEnd.Model (Model)
-import Common.FrontEnd.Action (Action)
 import Common.FrontEnd.JSONSettings
 
 getScriptContents :: MisoString -> JSM (Maybe MisoString)
@@ -69,30 +58,6 @@ getInitialDataPayload = do
             return json
         )
         decoded
-
-
-data PageType = Catalog | Search | Thread
-    deriving Eq
-
-
-pageTypeFromURI :: URI -> PageType
-pageTypeFromURI = do
-    -- default to Catalog in case of routing error.
-    fromRight Catalog . routeResult
-
-    where
-        routeResult uri = route (Proxy :: Proxy (Route (View Model Action))) handlers (const uri) undefined
-
-        handlers = hLatest :<|> hThread :<|> hSearch
-
-        hLatest :: m -> PageType
-        hLatest = const Catalog
-
-        hThread :: a -> a -> b -> m -> PageType
-        hThread = const $ const $ const $ const Thread
-
-        hSearch :: Maybe a -> m -> PageType
-        hSearch = const $ const Search
 
 
 getMetadata :: MisoString -> JSM (Maybe MisoString)
