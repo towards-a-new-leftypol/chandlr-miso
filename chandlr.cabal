@@ -104,6 +104,7 @@ executable chandlr
             Common.Parsing.BodyParser
             Common.Component.Search
             Common.Utils
+            Common.Admin.DeleteBtn
             Utils
             Network.Client
             Network.Http

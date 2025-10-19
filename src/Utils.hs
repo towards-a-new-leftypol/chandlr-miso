@@ -88,6 +88,8 @@ settingsFromHtml = do
 
     mediaRoot <- getMediaRoot
 
+    isAdmin <- (Just "True" ==) <$> getMetadata "admin"
+
     consoleLog $ "media_root: " <> mediaRoot
 
     return JSONSettings
@@ -97,4 +99,5 @@ settingsFromHtml = do
         , media_root = mediaRoot
         , static_serve_path = ""
         , static_serve_url_root = ""
+        , admin = isAdmin
         }
