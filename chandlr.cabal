@@ -105,6 +105,8 @@ executable chandlr
             Common.Component.Search
             Common.Utils
             Common.Admin.DeleteBtn
+            Common.Admin.Component.DeleteIllegalPost
+            Common.Component.Modal
             Utils
             Network.Client
             Network.Http

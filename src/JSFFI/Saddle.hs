@@ -9,6 +9,7 @@ module JSFFI.Saddle
     , getAttribute
     , textContent
     , encodeURIComponent
+    , freezeBodyScrolling
     ) where
 
 import Language.Javascript.JSaddle
@@ -20,7 +21,10 @@ import Language.Javascript.JSaddle
     , js
     , (#)
     , maybeNullOrUndefined
+    , val
     )
+
+import Control.Monad (void)
 import Control.Lens.Operators ((^.))
 import Data.Text as T
 import Language.Javascript.JSaddle.String (textFromJSString)
@@ -62,9 +66,31 @@ getAttribute x attr =
                   let attrText = textFromJSString attr
                   fail $ "Attribute '" ++ T.unpack attrText ++ "' returned non-string value"
 
+
 encodeURIComponent :: JSString -> JSM JSString
 encodeURIComponent s = jsg1 ("encodeURIComponent" :: JSString) s >>= fromJSValUnchecked
 
 -- decode base64
 -- aToB :: JSString -> JSM (Maybe JSString)
 -- aToB s = jsg1 ("atob" :: JSString) s >>= fromJSVal
+
+-- freezeBodyScrolling :: JSM ()
+-- freezeBodyScrolling = do
+--   Document doc <- getDocument
+--   body <- doc # ("body" :: JSString) $ []
+--   style <- body # ("style" :: JSString) $ []
+--   style # ("overflow" :: JSString) $ [ val ("hidden" :: JSString) ]
+
+-- freezeBodyScrolling :: JSM ()
+-- freezeBodyScrolling = do
+--   Document doc <- getDocument
+--   body  <- (doc # ("body" :: JSString) $ []) :: JSM JSVal
+--   style <- (body # ("style" :: JSString) $ []) :: JSM JSVal
+--   void $ style # ("overflow" :: JSString) $ [val ("hidden" :: JSString)]
+
+freezeBodyScrolling :: JSM ()
+freezeBodyScrolling = do
+  Document doc <- getDocument
+  body  <- doc # ("body" :: JSString) $ ([] :: [JSVal])
+  style <- body # ("style" :: JSString) $ ([] :: [JSVal])
+  void $ style # ("overflow" :: JSString) $ [val ("hidden" :: JSString)]

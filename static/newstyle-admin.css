@@ -19,12 +19,15 @@
     font-size: calc(var(--post-illegal-delete-btn-font-size) * 1em);
     color: var(--color-primary);
     text-align: center;
+    letter-spacing: -0.0625em;
+    font-weight: bold;
 }
 
 .post-illegal-delete-btn:hover {
     background-color: var(--color-primary-darker-complement);
     color: var(--color-primary-complement);
     cursor: pointer;
+    box-shadow: 0 0 0.4em 0.1em var(--color-primary-complement); /* Glow effect */
 }
 
 .post {
