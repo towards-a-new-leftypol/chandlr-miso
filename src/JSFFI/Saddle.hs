@@ -75,16 +75,30 @@ encodeURIComponent s = jsg1 ("encodeURIComponent" :: JSString) s >>= fromJSValUn
 -- aToB :: JSString -> JSM (Maybe JSString)
 -- aToB s = jsg1 ("atob" :: JSString) s >>= fromJSVal
 
-freezeBodyScrolling :: JSM ()
-freezeBodyScrolling = do
+-- freezeBodyScrolling :: JSM ()
+-- freezeBodyScrolling = do
+--   Document doc <- getDocument
+--   body  <- doc # ("body" :: JSString) $ ([] :: [JSVal])
+--   style <- body # ("style" :: JSString) $ ([] :: [JSVal])
+--   void $ style # ("setProperty" :: JSString) $ [val ("overflow" :: JSString), val ("hidden" :: JSString)]
+-- 
+-- unfreezeBodyScrolling :: JSM ()
+-- unfreezeBodyScrolling = do
+--   Document doc <- getDocument
+--   body  <- doc # ("body" :: JSString) $ ([] :: [JSVal])
+--   style <- body # ("style" :: JSString) $ ([] :: [JSVal])
+--   void $ style # ("setProperty" :: JSString) $ [val ("overflow" :: JSString), val ("visible" :: JSString)]
+
+-- | Set the 'overflow' style property of document.body
+setBodyOverflow :: JSString -> JSM ()
+setBodyOverflow value = do
   Document doc <- getDocument
   body  <- doc # ("body" :: JSString) $ ([] :: [JSVal])
   style <- body # ("style" :: JSString) $ ([] :: [JSVal])
-  void $ style # ("setProperty" :: JSString) $ [val ("overflow" :: JSString), val ("hidden" :: JSString)]
+  void $ style # ("setProperty" :: JSString) $ [val ("overflow" :: JSString), val value]
+
+freezeBodyScrolling :: JSM ()
+freezeBodyScrolling = setBodyOverflow "hidden"
 
 unfreezeBodyScrolling :: JSM ()
-unfreezeBodyScrolling = do
-  Document doc <- getDocument
-  body  <- doc # ("body" :: JSString) $ ([] :: [JSVal])
-  style <- body # ("style" :: JSString) $ ([] :: [JSVal])
-  void $ style # ("setProperty" :: JSString) $ [val ("overflow" :: JSString), val ("visible" :: JSString)]
+unfreezeBodyScrolling = setBodyOverflow "visible"
