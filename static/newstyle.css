@@ -138,7 +138,7 @@
     padding: calc(2 * var(--padding-normal));
     background-color: var(--color-primary-complement);
     border-radius: calc(2 * var(--border-radius));
-    border: var(--border-thickness) solid var(--color-primary-complement);
+    border: var(--border-thickness) dashed var(--color-primary-complement);
     font-size: var(--text-size-smaller);
     color: var(--color-text);
     /* border: var(--border-thickness) solid var(--color-primary-darker-complement); */
@@ -146,7 +146,7 @@
 }
 
 .warning-message:hover {
-    border: var(--border-thickness) dashed var(--color-primary-darker-complement);
+    border-color: var(--color-primary-darker-complement);
 }
 
 .warning-message p {
