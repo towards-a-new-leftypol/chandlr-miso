@@ -21,6 +21,7 @@
     text-align: center;
     letter-spacing: -0.0625em;
     font-weight: bold;
+    user-select: none;
 }
 
 .post-illegal-delete-btn:hover {
