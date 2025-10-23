@@ -31,7 +31,12 @@
     box-shadow: 0 0 0.4em 0.1em var(--color-primary-complement); /* Glow effect */
 }
 
-.post {
+.post-with-admin {
     position: relative;
     padding-right: calc(var(--post-illegal-delete-btn-font-size) * calc(var(--post-illegal-delete-btn-width) + 1em)) !important;
+}
+
+.modal-dialog__content:after {
+    content: "";
+    display: block;
 }

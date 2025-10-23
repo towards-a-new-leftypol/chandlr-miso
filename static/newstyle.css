@@ -46,6 +46,7 @@
     position: relative;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     z-index: 1;
+    max-width: 90vw;
 }
 
 .modal-dialog__title {
@@ -84,7 +85,7 @@
     display: flex;
     justify-content: flex-end;
     gap: var(--padding-normal);
-    margin: calc(2 * var(--padding-normal));
+    margin: calc(var(--padding-normal));
 }
 
 .modal-dialog__button {
@@ -166,4 +167,21 @@
 
 .warning-message__strong-word {
     background-color: var(--color-primary-darker-complement);
+}
+
+.modal-dialog__post-preview {
+    max-height: calc(80vh - 10em);
+    overflow: scroll;
+    margin: var(--padding-normal) 0;
+    margin-bottom: 0;
+}
+
+.clearfix::before,
+.clearfix::after {
+  content: "";
+  display: table;
+}
+
+.clearfix::after {
+  clear: both;
 }
