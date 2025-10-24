@@ -25,10 +25,10 @@ import Miso
     , Effect
     , Component
     , text
-    , publish
     , io, io_
-    , subscribe
     , consoleError
+    , checkMail
+    , mail
     )
 import qualified Miso as M
 import Miso.String (MisoString, toMisoString)
@@ -47,15 +47,13 @@ awaitResult (_, resultVar) sender =
         ctx <- askJSM
 
         void $ liftIO $ forkIO $ do
-            result <- ReturnResult sender <$> takeMVar resultVar
+            result <- takeMVar resultVar
             --runJSaddle ctx $ sink $ (returnResult iface) result
             runJSaddle ctx $
-                sink $ Publish result
+                sink $ mail sender result
 
 
 update :: Action -> Effect parent Model Action
-update Initialize = subscribe clientInTopic OnMessage OnErrorMessage
-update (Publish x) = publish clientOutTopic x
 update (Connect sender actionResult) = awaitResult actionResult sender
 update (OnMessage (_, InitModel m)) = put m
 update (OnMessage (sender, FetchLatest t)) = do
@@ -122,10 +120,10 @@ app = M.Component
     , M.subs = []
     , M.events = M.defaultEvents
     , M.styles = []
-    , M.initialAction = Just Initialize
+    , M.initialAction = Nothing
     , M.mountPoint = Nothing
     , M.logLevel = M.DebugAll
     , M.scripts = []
-    , M.mailbox = const Nothing
+    , M.mailbox = checkMail OnMessage OnErrorMessage
     , M.bindings = []
     }
