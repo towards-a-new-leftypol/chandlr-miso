@@ -29,6 +29,8 @@ import Miso
     , io, io_
     , subscribe
     , consoleError
+    , topic
+    , Topic
     )
 import qualified Miso as M
 import Miso.String (MisoString, toMisoString)
@@ -40,23 +42,27 @@ import Common.Network.ClientTypes
 
 awaitResult
     :: Http.HttpActionResult
-    -> Sender
+    -> ReturnTopicName
     -> Effect parent Model Action
-awaitResult (_, resultVar) sender =
+awaitResult (_, resultVar) returnTopicName =
     withSink $ \sink -> do
         ctx <- askJSM
 
         void $ liftIO $ forkIO $ do
-            result <- ReturnResult sender <$> takeMVar resultVar
+            result <- ReturnResult <$> takeMVar resultVar
             --runJSaddle ctx $ sink $ (returnResult iface) result
             runJSaddle ctx $
-                sink $ Publish result
+                sink $ Publish returnTopicName result
 
 
 update :: Action -> Effect parent Model Action
 update Initialize = subscribe clientInTopic OnMessage OnErrorMessage
-update (Publish x) = publish clientOutTopic x
-update (Connect sender actionResult) = awaitResult actionResult sender
+update (Publish returnTopicName x) = publish returnTopic x
+    where
+        returnTopic :: Topic MessageOut
+        returnTopic = topic returnTopicName
+update (Connect returnTopicName actionResult) =
+    awaitResult actionResult returnTopicName
 update (OnMessage (_, InitModel m)) = put m
 update (OnMessage (sender, FetchLatest t)) = do
     model <- get
@@ -102,7 +108,7 @@ http_
     -> MisoString
     -> Http.HttpMethod
     -> Maybe a
-    -> Sender
+    -> ReturnTopicName
     -- -> JSM (Http.HttpActionResult b)
     -> Effect parent Model Action
 http_ m apiPath method payload sender =
