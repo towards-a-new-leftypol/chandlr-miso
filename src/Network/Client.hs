@@ -24,7 +24,6 @@ import Miso
     ( withSink
     , Effect
     , Component
-    , text
     , publish
     , io, io_
     , subscribe
@@ -32,6 +31,7 @@ import Miso
     , topic
     , Topic
     )
+import Miso.Html.Element (div_)
 import qualified Miso as M
 import Miso.String (MisoString, toMisoString)
 import Language.Javascript.JSaddle.Monad (askJSM, runJSaddle)
@@ -124,7 +124,7 @@ app = M.Component
     { M.model = Uninitialized
     , M.hydrateModel = Nothing
     , M.update = update
-    , M.view = const $ text ""
+    , M.view = const $ div_ [] []
     , M.subs = []
     , M.events = M.defaultEvents
     , M.styles = []
