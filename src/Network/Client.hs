@@ -72,12 +72,12 @@ update (OnMessage (sender, FetchLatest t)) = do
             , max_row_read = fetchCount model
             }
 
-    http_ model "/rpc/fetch_catalog" Http.POST payload sender
+    pghttp_ model "/rpc/fetch_catalog" Http.POST payload sender
 
 update (OnMessage (sender, GetThread GetThreadArgs {..})) = do
     model <- get
 
-    http_ model path Http.GET (Nothing :: Maybe ()) sender
+    pghttp_ model path Http.GET (Nothing :: Maybe ()) sender
 
     where
         path = "/sites?"
@@ -90,7 +90,7 @@ update (OnMessage (sender, GetThread GetThreadArgs {..})) = do
 update (OnMessage (sender, Search query)) = do
     model <- get
 
-    http_ model "/rpc/search_posts" Http.POST payload sender
+    pghttp_ model "/rpc/search_posts" Http.POST payload sender
 
     where
         payload = Just $ SearchPostsArgs
@@ -98,22 +98,39 @@ update (OnMessage (sender, Search query)) = do
             , max_rows = 100
             }
 
+update (OnMessage (sender, DeleteIllegalPost args)) =
+    http_ "admin_/delete_post" Http.POST (Just args) sender
+
 update (OnErrorMessage msg) =
     io_ $ consoleError ("Client Message decode failure: " <> toMisoString msg)
 
 
-http_
+pghttp_
     :: (ToJSON a)
     => Model
     -> MisoString
     -> Http.HttpMethod
     -> Maybe a
     -> ReturnTopicName
-    -- -> JSM (Http.HttpActionResult b)
     -> Effect parent Model Action
-http_ m apiPath method payload sender =
+pghttp_ m apiPath method payload sender =
     io $ Connect sender <$> Http.http
         (pgApiRoot m <> apiPath)
+        method
+        [("Content-Type", "application/json")]
+        payload
+
+
+http_
+    :: (ToJSON a)
+    => MisoString
+    -> Http.HttpMethod
+    -> Maybe a
+    -> ReturnTopicName
+    -> Effect parent Model Action
+http_ url method payload sender =
+    io $ Connect sender <$> Http.http
+        url
         method
         [("Content-Type", "application/json")]
         payload
