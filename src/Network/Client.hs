@@ -30,6 +30,7 @@ import Miso
     , consoleError
     , topic
     , Topic
+    , consoleLog
     )
 import Miso.Html.Element (div_)
 import qualified Miso as M
@@ -63,7 +64,9 @@ update (Publish returnTopicName x) = publish returnTopic x
         returnTopic = topic returnTopicName
 update (Connect returnTopicName actionResult) =
     awaitResult actionResult returnTopicName
-update (OnMessage (_, InitModel m)) = put m
+update (OnMessage (_, InitModel m)) = do
+    io_ $ consoleLog $ "HttpClient - InitModel received! " <> (toMisoString $ show m)
+    put m
 update (OnMessage (sender, FetchLatest t)) = do
     model <- get
 
@@ -99,7 +102,7 @@ update (OnMessage (sender, Search query)) = do
             }
 
 update (OnMessage (sender, DeleteIllegalPost args)) =
-    http_ "admin_/delete_post" Http.POST (Just args) sender
+    http_ "/admin_/delete_post" Http.POST (Just args) sender
 
 update (OnErrorMessage msg) =
     io_ $ consoleError ("Client Message decode failure: " <> toMisoString msg)
@@ -113,7 +116,8 @@ pghttp_
     -> Maybe a
     -> ReturnTopicName
     -> Effect parent Model Action
-pghttp_ m apiPath method payload sender =
+pghttp_ m apiPath method payload sender = do
+    io_$ consoleLog $ "HttpClient - sending Connect. pgApiRoot: " <> pgApiRoot m
     io $ Connect sender <$> Http.http
         (pgApiRoot m <> apiPath)
         method

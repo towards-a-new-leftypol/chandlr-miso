@@ -9,6 +9,7 @@ import Miso
     , run
     , miso
     , getURI
+    , toMisoString
     )
 import Language.Javascript.JSaddle.Monad (JSM)
 import Control.Monad.IO.Class (liftIO)
@@ -31,6 +32,8 @@ mainMain = do
     consoleLog "Haskell begin."
 
     jsonSettings <- settingsFromHtml
+
+    consoleLog $ toMisoString $ show jsonSettings
 
     uri <- getURI
 
