@@ -17,7 +17,7 @@ import Control.Concurrent.MVar (newEmptyMVar, putMVar)
 import Data.Aeson (ToJSON, eitherDecodeStrictText)
 import Data.Aeson.Text (encodeToLazyText)
 import Miso.String (MisoString, toMisoString, fromMisoString)
-import Miso (consoleLog)
+import Miso (consoleLog, consoleError)
 import Language.Javascript.JSaddle.Monad (JSM)
 
 import Common.Network.HttpTypes
@@ -40,29 +40,38 @@ mkResult :: XMLHttpRequest -> JSM HttpResult
 mkResult xhr = do
         status_code_int <- getStatus xhr
 
-        st :: String <- fromMisoString <$> getStatusText xhr
+        st :: MisoString <- getStatusText xhr
 
-        mText :: Maybe Text <- (fromMisoString <$>) <$> getResponseText xhr
+        mResponseStr :: Maybe MisoString <- getResponseText xhr
 
-        case mText of
-            Nothing -> return HttpResponse
-                    { status_code = status_code_int
-                    , status_text = st
-                    , body = Nothing
-                    }
-            Just response -> do
-                let parse_result = eitherDecodeStrictText response
-                case parse_result of
-                    Left err -> do
-                      consoleLog $ toMisoString $ show err
-                      return Error
-                    Right x -> do
-                        consoleLog "Decoding Successful"
-                        return HttpResponse
-                            { status_code = status_code_int
-                            , status_text = st
-                            , body = Just x
-                            }
+        let mText :: Maybe Text = fromMisoString <$> mResponseStr
+
+        if status_code_int >= 200 && status_code_int < 300
+        then
+            case mText of
+                Nothing -> return HttpResponse
+                        { status_code = status_code_int
+                        , status_text = st
+                        , body = Nothing
+                        }
+                Just response -> do
+                    let parse_result = eitherDecodeStrictText response
+                    case parse_result of
+                        Left err -> do
+                          consoleError $ toMisoString err
+                          return $ Error $ toMisoString err
+                        Right x -> do
+                            consoleLog "Decoding Successful"
+                            return HttpResponse
+                                { status_code = status_code_int
+                                , status_text = st
+                                , body = Just x
+                                }
+        else
+            return $ Error $
+                "Server responded with " <> (toMisoString $ show status_code_int)
+                <> " " <> st
+                <> maybe "" (\m -> "\nDetails:\n" <> m) mResponseStr
 
 
 http
@@ -82,10 +91,10 @@ http url method headers payload = do
         liftIO $ putMVar resultVar result
 
     addEventListener (jsval_ xhr) "abortEvent" $ liftIO $
-        putMVar resultVar Error
+        putMVar resultVar $ Error "Request aborted."
 
     addEventListener (jsval_ xhr) "error" $ liftIO $
-        putMVar resultVar Error
+        putMVar resultVar $ Error "Network Error"
 
     open xhr (toMisoString $ show method) url
     -- "/posts?limit=10"
