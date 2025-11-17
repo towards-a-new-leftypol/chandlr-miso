@@ -97,6 +97,7 @@ settingsFromHtml = do
         , jwt = ""
         , postgrest_fetch_count = postgrestFetchCount
         , media_root = mediaRoot
+        , media_root_path = ""
         , static_serve_path = ""
         , static_serve_url_root = ""
         , admin = isAdmin

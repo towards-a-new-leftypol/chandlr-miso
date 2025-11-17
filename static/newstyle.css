@@ -5,6 +5,10 @@
     --color-primary-darker-complement: #D9CBB7;
     --color-background: #EEF2FF;
     --color-text: #1F1F1F;
+    --color-error: red;
+    --color-error-lighter: #FFDEDE;
+    --color-success: green;
+    --color-success-lighter: #C8F0C8;;
 
     --padding-normal: .5em;
     --border-thickness: 2px;
@@ -152,6 +156,28 @@
 
 .warning-message p {
     margin: 0;
+}
+
+.warning-message--error {
+    background-color: var(--color-error-lighter);
+    border-color: var(--color-error-lighter);
+}
+
+.warning-message--error .warning-icon {
+    color: var(--color-error);
+}
+
+.warning-message--error:hover {
+    border-color: var(--color-error);
+}
+
+.warning-message--success {
+    background-color: var(--color-success-lighter);
+    border-color: var(--color-success-lighter);
+}
+
+.warning-message--success:hover {
+    border-color: var(--color-success);
 }
 
 .warning-icon {
