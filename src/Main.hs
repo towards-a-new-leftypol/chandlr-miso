@@ -19,6 +19,8 @@ import Common.FrontEnd.Types
 import Utils (settingsFromHtml, getInitialDataPayload)
 import Data.IORef (newIORef)
 
+import JSFFI.Profile (bracket)
+
 #if defined(wasm32_HOST_ARCH)
 foreign export javascript "hs_start" main :: IO ()
 #endif
@@ -31,17 +33,18 @@ mainMain :: JSM ()
 mainMain = do
     consoleLog "Haskell begin."
 
-    jsonSettings <- settingsFromHtml
+    ctxRef <- bracket "mainInit" $ do
+        jsonSettings <- settingsFromHtml
 
-    consoleLog $ toMisoString $ show jsonSettings
+        consoleLog $ toMisoString $ show jsonSettings
 
-    uri <- getURI
+        uri <- getURI
 
-    -- currentTime <- getMetadata "timestamp"
-    --     >>= maybe (liftIO getCurrentTime) (iso8601ParseM . fromMisoString)
+        -- currentTime <- getMetadata "timestamp"
+        --     >>= maybe (liftIO getCurrentTime) (iso8601ParseM . fromMisoString)
 
-    ctx <- AppInitCtx uri jsonSettings <$> getInitialDataPayload
+        ctx <- AppInitCtx uri jsonSettings <$> getInitialDataPayload
 
-    ctxRef <- liftIO $ newIORef ctx
+        liftIO $ newIORef ctx
 
     miso $ const $ app ctxRef

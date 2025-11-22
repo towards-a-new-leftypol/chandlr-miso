@@ -105,4 +105,3 @@ elemToNode (Element x) = Node x
 
 nodeToElem :: Node -> Element
 nodeToElem (Node x) = Element x
-
