@@ -113,6 +113,7 @@ executable chandlr
             Network.Http
             JSFFI.XHR
             JSFFI.Saddle
+            JSFFI.Profile
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:

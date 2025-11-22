@@ -4,8 +4,9 @@ let
   nixpkgs = pkgs;
   servant-miso-router = import ./nix-support/servant-miso-router.nix { inherit nixpkgs; };
   servant-miso-html = import ./nix-support/servant-miso-html.nix { inherit nixpkgs; };
+  haskell = pkgs.haskell.packages.ghc912;
 
-  drv = pkgs.haskellPackages.callCabal2nix "chandlr" ./. {
+  drv = haskell.callCabal2nix "chandlr" ./. {
     servant-miso-router = servant-miso-router;
     #servant-miso-html = servant-miso-html;
   };
@@ -13,10 +14,11 @@ let
   env = drv.env.overrideAttrs (oldAttrs: {
     buildInputs = oldAttrs.buildInputs ++ [
       pkgs.zlib
+      #haskell.cabal-install
       pkgs.haskellPackages.cabal-install
-      pkgs.haskellPackages.miso-from-html
-      pkgs.haskellPackages.hlint
-      pkgs.haskellPackages.haskell-language-server
+      haskell.miso-from-html
+      haskell.hlint
+      haskell.haskell-language-server
     ];
   });
 

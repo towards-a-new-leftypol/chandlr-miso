@@ -6,8 +6,8 @@ let
   src = nixpkgs.fetchFromGitHub {
     owner = "dmjio";
     repo = "miso";
-    rev = "e6798ccb6776352e506dfb47bed6f2c1ff77a859";
-    sha256 = "sha256-rXi0JBngEIpVVYd/NnFs6g7fjL2DyYjTGtpsSUY1PH0=";
+    rev = "f5bbda3e62dd8278a1537a10abcf023123187509";
+    sha256 = "sha256-Ki1c1dj6K2tV2xCo/hHzQZRXy+tfC+V9+P/s97uTsfo=";
   };
 
   miso = haskellPackages.callCabal2nix "miso" src {};
