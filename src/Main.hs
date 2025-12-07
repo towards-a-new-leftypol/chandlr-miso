@@ -19,7 +19,7 @@ import Common.FrontEnd.Types
 import Utils (settingsFromHtml, getInitialDataPayload)
 import Data.IORef (newIORef)
 
-import JSFFI.Profile (bracket)
+import JSFFI.Profile (bracket, sectionStart, toJSString)
 
 #if defined(wasm32_HOST_ARCH)
 foreign export javascript "hs_start" main :: IO ()
@@ -33,6 +33,7 @@ mainMain :: JSM ()
 mainMain = do
     consoleLog "Haskell begin."
 
+    liftIO $ sectionStart $ toJSString "pageLoad"
     ctxRef <- bracket "mainInit" $ do
         jsonSettings <- settingsFromHtml
 

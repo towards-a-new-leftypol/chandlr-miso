@@ -5,6 +5,7 @@ module JSFFI.Profile
 , sectionEnd
 , displayTotals
 , bracket
+, toJSString
 ) where
 
 #if defined(wasm32_HOST_ARCH)
@@ -17,7 +18,7 @@ foreign import javascript unsafe "window.sectionStart($1)"
 foreign import javascript unsafe "window.sectionEnd($1)"
     sectionEnd :: JSString -> IO ()
 
-foreign import javascript unsafe "window.displayTotals($1)"
+foreign import javascript unsafe "window.displayTotals()"
     displayTotals :: IO ()
 
 bracket :: (MonadIO m) => String -> m a -> m a
@@ -38,4 +39,7 @@ displayTotals = return ()
 
 bracket :: b -> m a -> m a
 bracket _ action = action
+
+toJSString :: a -> a
+toJSString = id
 #endif
