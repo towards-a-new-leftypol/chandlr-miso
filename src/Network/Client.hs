@@ -40,7 +40,6 @@ import Language.Javascript.JSaddle.Monad (askJSM, runJSaddle)
 import qualified Network.Http as Http
 import Common.Network.ClientTypes
 
-import qualified Data.Map as Map
 
 awaitResult
     :: Http.HttpActionResult
@@ -148,13 +147,11 @@ app = M.Component
     , M.update = update
     , M.view = const $ div_ [] []
     , M.subs = []
-    -- , M.events = M.defaultEvents
-    , M.events = Map.singleton "click" False
+    , M.events = M.defaultEvents
     , M.styles = []
     , M.initialAction = Just Initialize
     , M.mountPoint = Nothing
-    -- , M.logLevel = M.DebugAll
-    , M.logLevel = M.Off
+    , M.logLevel = M.DebugAll
     , M.scripts = []
     , M.mailbox = const Nothing
     , M.bindings = []

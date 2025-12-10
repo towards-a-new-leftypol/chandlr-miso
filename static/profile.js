@@ -46,10 +46,10 @@ class Profiler {
     stats.maxMs = Math.max(stats.maxMs, duration);
 
     const avg = stats.totalMs / stats.count;
-    console.log(
-      `[Profiler] ${tag}: ${duration.toFixed(2)}ms ` +
-      `(avg: ${avg.toFixed(2)}ms, min: ${stats.minMs.toFixed(2)}ms, max: ${stats.maxMs.toFixed(2)}ms)`
-    );
+    // console.log(
+    //   `[Profiler] ${tag}: ${duration.toFixed(2)}ms ` +
+    //   `(avg: ${avg.toFixed(2)}ms, min: ${stats.minMs.toFixed(2)}ms, max: ${stats.maxMs.toFixed(2)}ms)`
+    // );
   }
 
   displayTotals() {
