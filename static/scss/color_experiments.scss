@@ -1,0 +1,10 @@
+@use 'sass:color';
+
+// $color-primary: #D6DAF0;
+$color-primary: hsl(231, 46%, 89%);
+// $color-primary-darker: #B7C5D9;
+$color-primary-darker: hsl(215, 31%, 78%)
+
+@debug $color-primary;
+@debug color.scale($color-primary, $lightness: -10%);
+@debug color.adjust($color-primary, $lightness: -10%);
