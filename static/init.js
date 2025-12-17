@@ -2,53 +2,69 @@
 const MODE_WASM = "wasm";
 const MODE_JS = "ghcjs";
 const MODE_NONE = "none";
-const DEFAULT_MODE = MODE_JS; // JavaScript is default per requirements
+const DEFAULT_MODE = MODE_JS;
 const STORAGE_KEY = "runtimePreference";
 
-// Get preference from localStorage or use default
-const preference = localStorage.getItem(STORAGE_KEY) || DEFAULT_MODE;
-
-// Initialize based on preference
-if (preference === MODE_WASM) {
-    initializeWasm();
-} else if (preference === MODE_JS) {
-    loadJavaScript();
-} // MODE_NONE does nothing
-
-// Create toggle UI when DOM is ready
 if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", createRuntimeToggle);
+    document.addEventListener("DOMContentLoaded", initApp);
 } else {
-    createRuntimeToggle();
+    initApp();
+}
+
+async function initApp() {
+    createWasmProgressBar(); // Create progress bar FIRST
+    createRuntimeToggle();   // Create toggle UI
+    
+    const preference = localStorage.getItem(STORAGE_KEY) || DEFAULT_MODE;
+    if (preference === MODE_WASM) {
+        await initializeWasm();
+    } else if (preference === MODE_JS) {
+        loadJavaScript();
+    }
 }
 
 async function initializeWasm() {
-    const { WASI, OpenFile, File, ConsoleStdout } = await import("./browser_wasi_shim/index.js");
-    const ghc_wasm_jsffi = (await import("./wasm.js")).default;
+    const progressBar = document.getElementById("wasm-progress-bar");
+    progressBar.style.display = "block";
+    progressBar.style.width = "0%";
 
-    const args = [];
-    const env = ["GHCRTS=-H64m"];
-    const fds = [
-        new OpenFile(new File([])), // stdin
-        ConsoleStdout.lineBuffered((msg) => console.log(`[WASI stdout] ${msg}`)),
-        ConsoleStdout.lineBuffered((msg) => console.warn(`[WASI stderr] ${msg}`)),
-    ];
-    const wasi = new WASI(args, env, fds, { debug: false });
+    try {
+        // Parallelize imports while downloading WASM
+        const [wasiModule, ffiModule, wasmBytes] = await Promise.all([
+            import("./browser_wasi_shim/index.js"),
+            import("./wasm.js"),
+            loadWasmWithProgress(progressBar)
+        ]);
 
-    const instance_exports = {};
-    const { instance } = await WebAssembly.instantiateStreaming(
-        fetch("./chandlr.wasm"),
-        {
+        const { WASI, OpenFile, File, ConsoleStdout } = wasiModule;
+        const ghc_wasm_jsffi = ffiModule.default;
+
+        const args = [];
+        const env = ["GHCRTS=-H64m"];
+        const fds = [
+            new OpenFile(new File([])),
+            ConsoleStdout.lineBuffered((msg) => console.log(`[WASI stdout] ${msg}`)),
+            ConsoleStdout.lineBuffered((msg) => console.warn(`[WASI stderr] ${msg}`)),
+        ];
+        const wasi = new WASI(args, env, fds, { debug: false });
+
+        const instance_exports = {};
+        const { instance } = await WebAssembly.instantiate(wasmBytes, {
             wasi_snapshot_preview1: wasi.wasiImport,
             ghc_wasm_jsffi: ghc_wasm_jsffi(instance_exports),
-        }
-    );
+        });
 
-    Object.assign(instance_exports, instance.exports);
-    wasi.initialize(instance);
-    console.log("WASM exports ready.");
-    await instance.exports.hs_start();
-    console.log("Program started.");
+        Object.assign(instance_exports, instance.exports);
+        wasi.initialize(instance);
+        console.log("WASM exports ready.");
+        await instance.exports.hs_start();
+        console.log("Program started.");
+    } finally {
+        // Hide progress bar after short delay for visual polish
+        setTimeout(() => {
+            progressBar.style.display = "none";
+        }, 300);
+    }
 }
 
 function loadJavaScript() {
@@ -58,11 +74,64 @@ function loadJavaScript() {
     document.head.appendChild(script);
 }
 
+// REAL PROGRESS BAR IMPLEMENTATION
+function createWasmProgressBar() {
+    if (document.getElementById("wasm-progress-bar")) return;
+    
+    const style = document.createElement("style");
+    style.textContent = `
+        #wasm-progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background-color: #F0ECD6;
+            width: 0%;
+            z-index: 2147483647;
+            transition: width 0.05s linear; /* Responsive but not sluggish */
+            display: none;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    const bar = document.createElement("div");
+    bar.id = "wasm-progress-bar";
+    document.body.prepend(bar); // Ensure it's the topmost element
+}
+
+// ACTUAL PROGRESS TRACKING VIA XHR
+function loadWasmWithProgress(progressBar) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', './chandlr.wasm', true);
+        xhr.responseType = 'arraybuffer';
+
+        xhr.onprogress = function(event) {
+            if (event.lengthComputable) {
+                const percent = (event.loaded / event.total) * 100;
+                progressBar.style.width = `${percent}%`;
+            }
+        };
+
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                resolve(xhr.response);
+            } else {
+                reject(new Error(`WASM load failed: HTTP ${xhr.status}`));
+            }
+        };
+
+        xhr.onerror = function() {
+            reject(new Error('Network error while loading WASM'));
+        };
+
+        xhr.send();
+    });
+}
+
 function createRuntimeToggle() {
-    // Avoid duplicate creation during hot-reloads
     if (document.getElementById("runtime-toggle-container")) return;
 
-    // Inject styles
     const style = document.createElement("style");
     style.textContent = `
     #runtime-toggle-container {
@@ -166,28 +235,23 @@ function createRuntimeToggle() {
   `;
     document.head.appendChild(style);
 
-    // Create container
     const container = document.createElement("div");
     container.id = "runtime-toggle-container";
     document.body.appendChild(container);
 
-    // Toggle button
     const btn = document.createElement("button");
     btn.id = "runtime-toggle-btn";
     container.appendChild(btn);
 
-    // Menu container
     const menu = document.createElement("div");
     menu.id = "runtime-toggle-menu";
     container.appendChild(menu);
 
-    // === Instruction text ===
-    const instruction = document.createElement("h4");
+    const instruction = document.createElement("div");
     instruction.id = "runtime-toggle-instruction";
-    instruction.textContent = "Change application runtime";
+    instruction.textContent = "Select application runtime:";
     menu.appendChild(instruction);
 
-    // Menu content
     const options = [
         {
             mode: MODE_NONE,
@@ -206,58 +270,49 @@ function createRuntimeToggle() {
         }
     ];
 
-    // Current stored preference
     const currentMode = localStorage.getItem(STORAGE_KEY) || DEFAULT_MODE;
 
-    // Create option elements
     options.forEach(opt => {
         const div = document.createElement("div");
         div.className = "runtime-option";
-
+        
+        const id = `mode-${opt.mode}`;
         div.innerHTML = `
-      <input type="radio" name="runtime-mode" id="mode-${opt.mode}" value="${opt.mode}"
-        ${opt.mode === currentMode ? 'checked' : ''}>
-      <label for="mode-${opt.mode}">
-        <strong>${opt.title}</strong>
-        <div class="desc">${opt.desc}</div>
-      </label>
-    `;
+            <input type="radio" name="runtime-mode" id="${id}" value="${opt.mode}" ${opt.mode === currentMode ? 'checked' : ''}>
+            <label for="${id}">
+                <strong>${opt.title}</strong>
+                <div class="desc">${opt.desc}</div>
+            </label>
+        `;
         menu.appendChild(div);
     });
 
-    // Apply button
     const applyBtn = document.createElement("button");
     applyBtn.id = "apply-runtime";
     applyBtn.textContent = "Apply Selection";
     menu.appendChild(applyBtn);
 
-    // Toggle menu visibility
     btn.addEventListener("click", (e) => {
         e.stopPropagation();
         menu.classList.toggle("active");
     });
 
-    // Handle apply click
     applyBtn.addEventListener("click", () => {
         const selected = menu.querySelector('input[name="runtime-mode"]:checked').value;
         const currentStored = localStorage.getItem(STORAGE_KEY) || DEFAULT_MODE;
-
+        
         if (selected !== currentStored) {
             localStorage.setItem(STORAGE_KEY, selected);
             location.reload();
         }
-
-        // Always close menu after apply
         menu.classList.remove("active");
     });
 
-    // Close menu on outside click
     document.addEventListener("click", (e) => {
         if (!container.contains(e.target)) {
             menu.classList.remove("active");
         }
     });
 
-    // Prevent menu close when clicking inside
     menu.addEventListener("click", (e) => e.stopPropagation());
 }
