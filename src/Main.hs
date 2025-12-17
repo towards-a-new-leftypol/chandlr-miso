@@ -8,18 +8,23 @@ import Miso
     ( consoleLog
     , run
     , miso
+    , startApp
     , getURI
     , toMisoString
+    , fromMisoString
     )
 import Language.Javascript.JSaddle.Monad (JSM)
 import Control.Monad.IO.Class (liftIO)
+import Text.Read (readMaybe)
+import Data.Maybe (fromMaybe)
+import Data.Time.Clock (getCurrentTime)
 
 import Common.FrontEnd.MainComponent
-import Common.FrontEnd.Types
-import Utils (settingsFromHtml, getInitialDataPayload)
+import Common.FrontEnd.Types hiding (hydrate)
+import Utils (settingsFromHtml, getInitialDataPayload, getMetadata)
 import Data.IORef (newIORef)
 
-import JSFFI.Profile (bracket, sectionStart, toJSString)
+import JSFFI.Profile (sectionStart, toJSString)
 
 #if defined(wasm32_HOST_ARCH)
 foreign export javascript "hs_start" main :: IO ()
@@ -34,18 +39,33 @@ mainMain = do
     consoleLog "Haskell begin."
 
     liftIO $ sectionStart $ toJSString "pageLoad"
-    ctxRef <- bracket "mainInit" $ do
-        jsonSettings <- settingsFromHtml
 
-        consoleLog $ toMisoString $ show jsonSettings
+    jsonSettings <- settingsFromHtml
 
-        uri <- getURI
+    consoleLog $ toMisoString $ show jsonSettings
 
-        -- currentTime <- getMetadata "timestamp"
-        --     >>= maybe (liftIO getCurrentTime) (iso8601ParseM . fromMisoString)
+    hydrateStr <- getMetadata "hydrate"
 
-        ctx <- AppInitCtx uri jsonSettings <$> getInitialDataPayload
+    let hydrate = fromMaybe False (readMaybe =<< (return . fromMisoString) =<< hydrateStr)
 
-        liftIO $ newIORef ctx
+    uri <- getURI
 
-    miso $ const $ app ctxRef
+    -- currentTime <- getMetadata "timestamp"
+    --     >>= maybe (liftIO getCurrentTime) (iso8601ParseM . fromMisoString)
+
+    ctx <-
+        if hydrate
+        then
+            AppInitCtx True uri jsonSettings <$> getInitialDataPayload
+        else do
+            now <- liftIO getCurrentTime
+            consoleLog $ "hydrate is off, current time: " <> toMisoString (show now)
+            return $ AppInitCtx False uri jsonSettings (InitialDataPayload now Nil)
+
+    ctxRef <- liftIO $ newIORef ctx
+
+    if hydrate
+    then
+        miso $ const $ app ctxRef
+    else
+        startApp $ app ctxRef

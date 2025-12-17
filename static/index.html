@@ -1,43 +1,17 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="postgrest-root" content="http://localhost:3000">
-    <meta name="postgrest-fetch-count" content="50">
-    <meta name="media-root" content="http://localhost:8889">
+    <meta name="postgrest-url" content="http://192.168.4.6:3000">
+    <meta name="postgrest-fetch-count" content="200">
+    <meta name="media-root" content="http://192.168.4.6:8889">
+    <meta name="admin" content="False">
+    <meta name="hydrate" content="False">
     <title>Chandlr</title>
-    <script type="module">
-      import { WASI, OpenFile, File, ConsoleStdout } from "./browser_wasi_shim/index.js";
-      import ghc_wasm_jsffi from "./wasm.js";
-
-      const args = [];
-      const env = ["GHCRTS=-H64m"];
-      const fds = [
-        new OpenFile(new File([])), // stdin
-        ConsoleStdout.lineBuffered((msg) => console.log(`[WASI stdout] ${msg}`)),
-        ConsoleStdout.lineBuffered((msg) => console.warn(`[WASI stderr] ${msg}`)),
-      ];
-      const options = { debug: false };
-      const wasi = new WASI(args, env, fds, options);
-
-      const instance_exports = {};
-      const { instance } = await WebAssembly.instantiateStreaming(fetch("chandlr.wasm"), {
-        wasi_snapshot_preview1: wasi.wasiImport,
-        ghc_wasm_jsffi: ghc_wasm_jsffi(instance_exports),
-      });
-      Object.assign(instance_exports, instance.exports);
-
-      wasi.initialize(instance);
-
-      if (instance.exports != null) {
-        console.log("WASM exports ready.");
-      }
-
-      await instance.exports.hs_start();
-
-      console.log("Program started.");
-    </script>
-    <link href="style.css" rel="stylesheet" />
+    <script type="module" src="./profile.js"></script>
+    <script type="module" src="./init.js"></script>
+    <link href="./style.css" type="text/css" rel="stylesheet" />
   </head>
   <body>
   </body>
