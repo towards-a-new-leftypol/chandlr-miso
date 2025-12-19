@@ -69,7 +69,7 @@ async function initializeWasm() {
 
 function loadJavaScript() {
     const script = document.createElement("script");
-    script.src = "./all.js";
+    script.src = "/static/all.js";
     script.defer = true;
     document.head.appendChild(script);
 }
@@ -103,7 +103,7 @@ function createWasmProgressBar() {
 function loadWasmWithProgress(progressBar) {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('GET', './chandlr.wasm', true);
+        xhr.open('GET', '/static/chandlr.wasm', true);
         xhr.responseType = 'arraybuffer';
 
         xhr.onprogress = function(event) {
@@ -135,7 +135,7 @@ function createRuntimeToggle() {
     const style = document.createElement("style");
     style.textContent = `
     #runtime-toggle-container {
-      position: fixed;
+      position: absolute;
       top: 0;
       right: 0;
       z-index: 2147483647;
