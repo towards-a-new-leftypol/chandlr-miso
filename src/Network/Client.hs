@@ -17,7 +17,7 @@ import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
-import Data.Aeson (ToJSON)
+import Miso.JSON (ToJSON)
 import Control.Monad.State (get, put)
 
 import Miso
@@ -58,7 +58,7 @@ awaitResult (_, resultVar) returnTopicName =
 
 update :: Action -> Effect parent Model Action
 update Initialize = subscribe clientInTopic OnMessage OnErrorMessage
-update (Publish returnTopicName x) = publish returnTopic x
+update (Publish returnTopicName x) = io_ $ publish returnTopic x
     where
         returnTopic :: Topic MessageOut
         returnTopic = topic returnTopicName
@@ -147,13 +147,13 @@ app = M.Component
     , M.update = update
     , M.view = const $ div_ [] []
     , M.subs = []
-    , M.events = M.defaultEvents
     , M.styles = []
-    , M.initialAction = Just Initialize
     , M.mountPoint = Nothing
     , M.logLevel = M.DebugAll
     , M.scripts = []
     , M.mailbox = const Nothing
     , M.bindings = []
     , M.eventPropagation = False
+    , M.mount = Just Initialize
+    , M.unmount = Nothing
     }

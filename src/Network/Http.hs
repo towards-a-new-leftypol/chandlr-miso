@@ -10,14 +10,11 @@ module Network.Http
 where
 
 import Prelude hiding (error)
-import Data.Text (Text)
-import Data.Text.Lazy (toStrict)
 import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent.MVar (newEmptyMVar, putMVar)
-import Data.Aeson (ToJSON, eitherDecodeStrictText)
-import Data.Aeson.Text (encodeToLazyText)
-import Miso.String (MisoString, toMisoString, fromMisoString)
+import Miso.String (MisoString, toMisoString)
 import Miso (consoleLog, consoleError)
+import Miso.JSON (ToJSON, eitherDecode, encode)
 import Language.Javascript.JSaddle.Monad (JSM)
 
 import Common.Network.HttpTypes
@@ -44,18 +41,16 @@ mkResult xhr = do
 
         mResponseStr :: Maybe MisoString <- getResponseText xhr
 
-        let mText :: Maybe Text = fromMisoString <$> mResponseStr
-
         if status_code_int >= 200 && status_code_int < 300
         then
-            case mText of
+            case mResponseStr of
                 Nothing -> return HttpResponse
                         { status_code = status_code_int
                         , status_text = st
                         , body = Nothing
                         }
                 Just response -> do
-                    let parse_result = eitherDecodeStrictText response
+                    let parse_result = eitherDecode response
                     case parse_result of
                         Left err -> do
                           consoleError $ toMisoString err
@@ -101,7 +96,7 @@ http url method headers payload = do
 
     mapM_ (\(k, v) -> setRequestHeader xhr k v) headers
 
-    let p = payload >>= Just . toMisoString . toStrict . encodeToLazyText
+    let p = payload >>= Just . encode
 
     send xhr p
     return (abort xhr, resultVar)

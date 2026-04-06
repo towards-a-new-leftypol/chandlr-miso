@@ -3,10 +3,10 @@
 
 module Utils where
 
-import Data.Aeson (eitherDecodeStrict)
 import Miso
     ( consoleLog
     )
+import Miso.JSON (eitherDecode)
 import Miso.String
     ( MisoString
     , toMisoString
@@ -24,8 +24,8 @@ import JSFFI.Saddle
     , getAttribute
     )
 import qualified Data.ByteString.Base64 as B64
-import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (fromMaybe)
+import Data.Bifunctor (first)
 
 import Common.FrontEnd.Types
 import Common.FrontEnd.JSONSettings
@@ -41,16 +41,18 @@ getScriptContents className = do
         Just e -> (toMisoString <$>) <$> textContent e
 
 
-getInitialDataPayload :: JSM InitialDataPayload
+getInitialDataPayload :: IO InitialDataPayload
 getInitialDataPayload = do
     maybeRawData <- getScriptContents "initial-data"
 
-    let decoded = B64.decode (fromMisoString (fromMaybe "" maybeRawData)) >>= eitherDecodeStrict
+    let decoded = first toMisoString
+                (B64.decode (fromMisoString (fromMaybe "" maybeRawData)))
+                >>= eitherDecode . toMisoString
 
     either
          ( \err -> do
              consoleLog $ "!!!! Could not parse initial data! Falling back to default values. Error: " <> toMisoString err
-             t <- liftIO getCurrentTime
+             t <- getCurrentTime
              return $ InitialDataPayload t Nil
          )
          ( \json -> do

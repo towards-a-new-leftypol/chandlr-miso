@@ -38,7 +38,7 @@ mainMain :: JSM ()
 mainMain = do
     consoleLog "Haskell begin."
 
-    liftIO $ sectionStart $ toJSString "pageLoad"
+    -- liftIO $ sectionStart $ toJSString "pageLoad"
 
     jsonSettings <- settingsFromHtml
 

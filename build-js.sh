@@ -6,7 +6,7 @@ set -e
 pushd $( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 # compile to javascript
-cabal build --with-compiler=javascript-unknown-ghcjs-ghc --with-hc-pkg=javascript-unknown-ghcjs-ghc-pkg --allow-newer
+cabal build --with-compiler=javascript-unknown-ghcjs-ghc --with-hc-pkg=javascript-unknown-ghcjs-ghc-pkg
 
 # for some reason this next part fails the first time it's run because the directory doesn't exist yet.
 # if this happens just run the script again!
