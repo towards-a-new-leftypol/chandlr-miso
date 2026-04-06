@@ -6,14 +6,13 @@ module Main where
 
 import Miso
     ( consoleLog
-    , run
     , miso
     , startApp
     , getURI
     , toMisoString
     , fromMisoString
+    , defaultEvents
     )
-import Language.Javascript.JSaddle.Monad (JSM)
 import Control.Monad.IO.Class (liftIO)
 import Text.Read (readMaybe)
 import Data.Maybe (fromMaybe)
@@ -32,10 +31,7 @@ foreign export javascript "hs_start" main :: IO ()
 
 
 main :: IO ()
-main = run mainMain
-
-mainMain :: JSM ()
-mainMain = do
+main = do
     consoleLog "Haskell begin."
 
     -- liftIO $ sectionStart $ toJSString "pageLoad"
@@ -66,6 +62,6 @@ mainMain = do
 
     if hydrate
     then
-        miso $ const $ app ctxRef
+        miso defaultEvents $ const $ app ctxRef
     else
-        startApp $ app ctxRef
+        startApp defaultEvents $ app ctxRef
