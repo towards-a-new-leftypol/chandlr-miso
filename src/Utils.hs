@@ -12,9 +12,8 @@ import Miso.String
     , toMisoString
     , fromMisoString
     )
-import Language.Javascript.JSaddle.Monad (JSM)
 import Data.Time.Clock (getCurrentTime)
-import JSFFI.Saddle
+import JSFFI.MisoFFI
     ( getDocument
     , Element (..)
     , Document (..)
@@ -26,11 +25,12 @@ import JSFFI.Saddle
 import qualified Data.ByteString.Base64 as B64
 import Data.Maybe (fromMaybe)
 import Data.Bifunctor (first)
+import Control.Monad.IO.Class (liftIO)
 
 import Common.FrontEnd.Types
 import Common.FrontEnd.JSONSettings
 
-getScriptContents :: MisoString -> JSM (Maybe MisoString)
+getScriptContents :: MisoString -> IO (Maybe MisoString)
 getScriptContents className = do
     doc <- (\(Document d) -> ParentNode d) <$> getDocument
 
@@ -62,7 +62,7 @@ getInitialDataPayload = do
         decoded
 
 
-getMetadata :: MisoString -> JSM (Maybe MisoString)
+getMetadata :: MisoString -> IO (Maybe MisoString)
 getMetadata key = do
     doc <- (\(Document d) -> ParentNode d) <$> getDocument
 
@@ -74,16 +74,17 @@ getMetadata key = do
             (toMisoString <$>) <$> getAttribute el ("content" :: MisoString)
 
 
-getMediaRoot :: JSM MisoString
+getMediaRoot :: IO MisoString
 getMediaRoot = getMetadata "media-root" >>=
     return . maybe "undefined" id
 
 
-settingsFromHtml :: JSM JSONSettings
+settingsFromHtml :: IO JSONSettings
 settingsFromHtml = do
     postgrestUrl <- getMetadata "postgrest-url" >>=
         return . maybe "http://localhost:3000" id
-    consoleLog $ "postgrest-url " <> postgrestUrl
+
+    liftIO $ consoleLog $ "postgrest-url " <> postgrestUrl
 
     postgrestFetchCount <- getMetadata "postgrest-fetch-count" >>=
         return . maybe 1000 fromMisoString
@@ -92,7 +93,7 @@ settingsFromHtml = do
 
     isAdmin <- (Just "True" ==) <$> getMetadata "admin"
 
-    consoleLog $ "media_root: " <> mediaRoot
+    liftIO $ consoleLog $ "media_root: " <> mediaRoot
 
     return JSONSettings
         { postgrest_url = postgrestUrl

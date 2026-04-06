@@ -112,7 +112,7 @@ executable chandlr
             Network.Client
             Network.Http
             JSFFI.XHR
-            JSFFI.Saddle
+            JSFFI.MisoFFI
             JSFFI.Profile
 
     -- LANGUAGE extensions used by modules in this package.
@@ -129,7 +129,6 @@ executable chandlr
                        network-uri,
                        containers,
                        parsec,
-                       jsaddle,
                        html-parse,
                        miso,
                        mtl,

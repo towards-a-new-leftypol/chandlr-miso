@@ -15,7 +15,6 @@ import Control.Concurrent.MVar (newEmptyMVar, putMVar)
 import Miso.String (MisoString, toMisoString)
 import Miso (consoleLog, consoleError)
 import Miso.JSON (ToJSON, eitherDecode, encode)
-import Language.Javascript.JSaddle.Monad (JSM)
 
 import Common.Network.HttpTypes
 import JSFFI.XHR
@@ -33,7 +32,7 @@ import JSFFI.XHR
 
 type Header = (MisoString, MisoString)
 
-mkResult :: XMLHttpRequest -> JSM HttpResult
+mkResult :: XMLHttpRequest -> IO HttpResult
 mkResult xhr = do
         status_code_int <- getStatus xhr
 
@@ -75,7 +74,7 @@ http
     -> HttpMethod
     -> [Header]
     -> Maybe a
-    -> JSM HttpActionResult
+    -> IO HttpActionResult
 http url method headers payload = do
     xhr <- newXMLHttpRequest
 

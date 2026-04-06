@@ -14,7 +14,6 @@ module Network.Client
     ) where
 
 import Control.Monad (void)
-import Control.Monad.IO.Class (liftIO)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
 import Miso.JSON (ToJSON)
@@ -35,7 +34,6 @@ import Miso
 import Miso.Html.Element (div_)
 import qualified Miso as M
 import Miso.String (MisoString, toMisoString)
-import Language.Javascript.JSaddle.Monad (askJSM, runJSaddle)
 
 import qualified Network.Http as Http
 import Common.Network.ClientTypes
@@ -47,13 +45,9 @@ awaitResult
     -> Effect parent Model Action
 awaitResult (_, resultVar) returnTopicName =
     withSink $ \sink -> do
-        ctx <- askJSM
-
-        void $ liftIO $ forkIO $ do
+        void $ forkIO $ do
             result <- ReturnResult <$> takeMVar resultVar
-            --runJSaddle ctx $ sink $ (returnResult iface) result
-            runJSaddle ctx $
-                sink $ Publish returnTopicName result
+            sink $ Publish returnTopicName result
 
 
 update :: Action -> Effect parent Model Action

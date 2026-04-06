@@ -13,77 +13,57 @@ module JSFFI.XHR
     , getStatus
     ) where
 
-import Data.Maybe (fromJust)
-import Language.Javascript.JSaddle
+import Miso.DSL
     ( JSVal
-    , JSM
-    , (#)
-    , ToJSVal (..)
     , jsg
+    , (#)
     , (!)
     , new
-    , asyncFunction
-    , FromJSVal (..)
+    , toJSVal
+    , fromJSVal
+    , syncCallback
+    , ToJSVal
+    , FromJSVal
     )
 import Miso.String (MisoString)
-
+import Data.Maybe (fromJust)
+import Control.Monad (void)
 
 newtype XMLHttpRequest = XMLHttpRequest JSVal
 
+newXMLHttpRequest :: IO XMLHttpRequest
+newXMLHttpRequest = XMLHttpRequest <$> new (jsg "XMLHttpRequest") ([] :: [ JSVal ])
 
-newXMLHttpRequest :: JSM XMLHttpRequest
-newXMLHttpRequest = XMLHttpRequest <$> new (jsg ("XMLHttpRequest" :: MisoString)) ()
+abort :: XMLHttpRequest -> IO ()
+abort (XMLHttpRequest xhr) = void $ xhr # "abort" $ ([] :: [ JSVal ])
 
-
-abort :: XMLHttpRequest -> JSM ()
-abort (XMLHttpRequest xhr) = do
-    _ <- xhr # ("abort" :: MisoString) $ ([] :: [ MisoString ])
-    return ()
-
-
-send :: (ToJSVal a) => XMLHttpRequest -> a -> JSM ()
+send :: ToJSVal a => XMLHttpRequest -> a -> IO ()
 send (XMLHttpRequest xhr) payload = do
-    _ <- xhr # ("send" :: MisoString) $ ([ toJSVal payload ])
-    return ()
+    val <- toJSVal payload
+    void $ xhr # "send" $ [val]
 
+setRequestHeader :: XMLHttpRequest -> MisoString -> MisoString -> IO ()
+setRequestHeader (XMLHttpRequest xhr) k v =
+    void $ xhr # "setRequestHeader" $ [k, v]
 
-setRequestHeader :: XMLHttpRequest -> MisoString -> MisoString -> JSM ()
-setRequestHeader (XMLHttpRequest xhr) k v = do
-    _ <- xhr # ("setRequestHeader" :: MisoString) $ ([ k, v ])
-    return ()
+open :: XMLHttpRequest -> MisoString -> MisoString -> IO ()
+open (XMLHttpRequest xhr) method url =
+    void $ xhr # "open" $ [method, url]
 
-
-open :: XMLHttpRequest -> MisoString -> MisoString -> JSM ()
-open (XMLHttpRequest xhr) method url = do
-    _ <- xhr # ("open" :: MisoString) $ ([ method, url ])
-    return ()
-
-
-getStatusText :: XMLHttpRequest -> JSM MisoString
+getStatusText :: XMLHttpRequest -> IO MisoString
 getStatusText (XMLHttpRequest xhr) =
     getProp_ xhr "statusText" >>= return . fromJust
 
-
-getResponseText :: XMLHttpRequest -> JSM (Maybe MisoString)
+getResponseText :: XMLHttpRequest -> IO (Maybe MisoString)
 getResponseText (XMLHttpRequest xhr) = getProp_ xhr "responseText"
 
-
-getStatus :: XMLHttpRequest -> JSM Int
+getStatus :: XMLHttpRequest -> IO Int
 getStatus (XMLHttpRequest xhr) = getProp_ xhr "status" >>= return . fromJust
 
-
-addEventListener
-  :: JSVal
-  -> MisoString
-  -> JSM ()
-  -> JSM ()
+addEventListener :: JSVal -> MisoString -> IO () -> IO ()
 addEventListener self name cb = do
-    _ <- self # ("addEventListener" :: MisoString) $ (name, asyncFunction handle)
-    return ()
+    cbVal <- syncCallback cb
+    void ((#) self "addEventListener" (name, cbVal))
 
-    where
-      handle _ _ _ = cb
-
-
-getProp_ :: (FromJSVal a) => JSVal -> MisoString -> JSM (Maybe a)
+getProp_ :: FromJSVal a => JSVal -> MisoString -> IO (Maybe a)
 getProp_ self name = self ! name >>= fromJSVal
