@@ -12,6 +12,7 @@ import Miso
     , toMisoString
     , fromMisoString
     , defaultEvents
+    , withJS
     )
 import Control.Monad.IO.Class (liftIO)
 import Text.Read (readMaybe)
@@ -31,7 +32,7 @@ foreign export javascript "hs_start" main :: IO ()
 
 
 main :: IO ()
-main = do
+main = withJS $ do
     consoleLog "Haskell begin."
 
     -- liftIO $ sectionStart $ toJSString "pageLoad"

@@ -18,7 +18,6 @@ import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar (takeMVar)
 import Miso.JSON (ToJSON)
 import Control.Monad.State (get, put)
-
 import Miso
     ( withSink
     , Effect
@@ -30,6 +29,7 @@ import Miso
     , topic
     , Topic
     , consoleLog
+    , mailParent
     )
 import Miso.Html.Element (div_)
 import qualified Miso as M
@@ -37,6 +37,7 @@ import Miso.String (MisoString, toMisoString)
 
 import qualified Network.Http as Http
 import Common.Network.ClientTypes
+import Common.FrontEnd.Types (MessagesFromChildren (..))
 
 
 awaitResult
@@ -51,16 +52,22 @@ awaitResult (_, resultVar) returnTopicName =
 
 
 update :: Action -> Effect parent Model Action
-update Initialize = subscribe clientInTopic OnMessage OnErrorMessage
+update Initialize = do
+    subscribe clientInTopic OnMessage OnErrorMessage
+    mailParent MsgClientMounted
+
 update (Publish returnTopicName x) = io_ $ publish returnTopic x
     where
         returnTopic :: Topic MessageOut
         returnTopic = topic returnTopicName
+
 update (Connect returnTopicName actionResult) =
     awaitResult actionResult returnTopicName
+
 update (OnMessage (_, InitModel m)) = do
     io_ $ consoleLog $ "HttpClient - InitModel received! " <> (toMisoString $ show m)
     put m
+
 update (OnMessage (sender, FetchLatest t)) = do
     model <- get
 
