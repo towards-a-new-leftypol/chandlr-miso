@@ -2,7 +2,7 @@
 const MODE_WASM = "wasm";
 const MODE_JS = "ghcjs";
 const MODE_NONE = "none";
-const DEFAULT_MODE = MODE_JS;
+const DEFAULT_MODE = MODE_WASM;
 const STORAGE_KEY = "runtimePreference";
 // const STATIC_MOUNT = "./";
 const STATIC_MOUNT = "/static/";

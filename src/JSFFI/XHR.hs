@@ -21,7 +21,7 @@ import Miso.DSL
     , new
     , toJSVal
     , fromJSVal
-    , syncCallback
+    , asyncCallback
     , ToJSVal
     , FromJSVal
     )
@@ -62,7 +62,7 @@ getStatus (XMLHttpRequest xhr) = getProp_ xhr "status" >>= return . fromJust
 
 addEventListener :: JSVal -> MisoString -> IO () -> IO ()
 addEventListener self name cb = do
-    cbVal <- syncCallback cb
+    cbVal <- asyncCallback cb
     void ((#) self "addEventListener" (name, cbVal))
 
 getProp_ :: FromJSVal a => JSVal -> MisoString -> IO (Maybe a)

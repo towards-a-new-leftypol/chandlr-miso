@@ -27,8 +27,6 @@ import Miso.DSL
     , isUndefined
     )
 import Miso.String (MisoString, fromMisoString)
-import Control.Monad (void)
-import qualified Data.Text as T
 
 -- | Newtypes wrapping JSVal for type safety
 newtype Document   = Document   JSVal
@@ -62,7 +60,7 @@ getAttribute x attr = do
         Nothing -> return Nothing
         Just v  -> fromJSVal v >>= \case
             Just s  -> return (Just s)
-            Nothing -> fail $ "Attribute '" ++ T.unpack (fromMisoString attr) ++ "' returned non-string value"
+            Nothing -> fail $ "Attribute '" ++ (fromMisoString attr) ++ "' returned non-string value"
 
 -- | Get the text content of an element
 textContent :: Element -> IO (Maybe MisoString)
@@ -78,7 +76,7 @@ freezeBodyScrolling = do
     doc   <- jsg "document"
     body  <- doc ! "body"
     style <- body ! "style"
-    setField style "overflow" "hidden"
+    setField style ("overflow" :: MisoString) ("hidden" :: MisoString)
 
 -- | Re-enable scrolling on the body
 unFreezeBodyScrolling :: IO ()
@@ -86,4 +84,4 @@ unFreezeBodyScrolling = do
     doc   <- jsg "document"
     body  <- doc ! "body"
     style <- body ! "style"
-    setField style "overflow" "" 
+    setField style ("overflow" :: MisoString) ("" :: MisoString)
