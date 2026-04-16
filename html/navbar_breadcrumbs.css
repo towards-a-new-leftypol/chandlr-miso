@@ -25,6 +25,8 @@
     --menu-chevron-factor: 3;
     --menu-chevron-gap: calc(4 * var(--menu-border-width));
     --hamburger-bar-height: 4px;
+    --hamburger-bar-spacing: 6px;
+    --hamburger-bar-width-ratio: .5;
 }
 
 body {
@@ -48,6 +50,7 @@ body {
   background-color: var(--color-primary);
 }
 
+/*
 .menu_button:after {
   content: '';
   position: absolute;
@@ -58,6 +61,7 @@ body {
   border-top: calc(var(--hamburger-bar-height) * 3) double var(--color-text-lighter);
   border-bottom: var(--hamburger-bar-height) solid var(--color-text-lighter);
 }
+*/
 
 .menu_button:hover {
   background-color: var(--color-primary-complement);
@@ -65,9 +69,11 @@ body {
   border-color: var(--color-primary-darker-complement);
 }
 
+/*
 .menu_button:hover:after {
   border-color: var(--color-text-lighter);
 }
+*/
 
 .breadcrumbs {
   flex-grow: 1;
@@ -82,11 +88,6 @@ body {
   border-bottom: var(--menu-border-width) solid var(--color-primary-darker);
   border-top: var(--menu-border-width) solid var(--color-primary-darker);
   position: relative;
-}
-
-.breadcrumb span {
-  position: relative;
-  z-index: 1;
 }
 
 .breadcrumb--clickable:hover,
@@ -157,7 +158,60 @@ body {
   fill: none;
 }
 
+.breadcrumb:hover .breadcrumb--dots {
+  visibility: visible;
+}
+
+
 .breadcrumb:last-child {
   flex-grow: 1;
 }
 
+.breadcrumb--dots {
+  --dots_width: 1em;
+  display: flex;
+  width: var(--dots_width);
+  height: 10px;
+  visibility: hidden;
+  position: absolute;
+  left: calc(50% - var(--dots_width) / 2);
+  bottom: -1px;
+}
+
+.breadcrumb--dots-dot {
+  stroke: var(--color-primary-darker-complement);
+  stroke-width: calc(1 * var(--hamburger-bar-height));
+}
+
+.menu_button--burger-icon {
+  left: calc(0.125 * var(--menu-height) + var(--menu-border-width) / 2);
+  left: calc(50% * (1 - var(--hamburger-bar-width-ratio)));
+}
+
+.menu_button--burger-icon,
+.menu_button--burger-icon:before,
+.menu_button--burger-icon:after {
+  position: absolute;
+  top: calc(50% - (var(--hamburger-bar-height) / 2));
+  bottom: 0;
+  width: calc(var(--hamburger-bar-width-ratio) * var(--menu-height));
+  height: var(--hamburger-bar-height);
+  height: 0;
+  background-color: var(--color-text-lighter);
+  border: calc(var(--hamburger-bar-height) / 2) solid var(--color-text-lighter);
+  border-radius: 1px;
+  box-sizing: border-box;
+}
+
+.menu_button--burger-icon:before,
+.menu_button--burger-icon:after {
+  content: "";
+  display: block;
+  position: absolute;
+  top: calc(-1 * var(--hamburger-bar-spacing) - var(--hamburger-bar-height));
+  left: calc(-1 * var(--hamburger-bar-height) / 2);
+}
+
+.menu_button--burger-icon:after {
+  top: var(--hamburger-bar-spacing);
+}
