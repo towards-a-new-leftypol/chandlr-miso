@@ -22,6 +22,8 @@
 
     --menu-height: calc(4 * var(--padding-normal));
     --menu-border-width: var(--border-thickness);
+    --menu-chevron-factor: 3;
+    --menu-chevron-gap: calc(4 * var(--menu-border-width));
     --hamburger-bar-height: 4px;
 }
 
@@ -33,7 +35,6 @@ body {
 }
 
 .navbar {
-  background-color: var(--color-primary);
   display: flex;
   font-size: 1.25em;
 }
@@ -44,13 +45,14 @@ body {
   height: var(--menu-height);
   position: relative;
   border: var(--menu-border-width) solid var(--color-primary-darker);
+  background-color: var(--color-primary);
 }
 
 .menu_button:after {
   content: '';
   position: absolute;
   top: calc((var(--menu-height) - ((var(--hamburger-bar-height)) * 5)) / 2);
-  left: calc(0.125 * var(--menu-height));
+  left: calc(0.125 * var(--menu-height) + var(--menu-border-width) / 2);
   width: calc((2/3) * var(--menu-height));
   height: var(--hamburger-bar-height);
   border-top: calc(var(--hamburger-bar-height) * 3) double var(--color-text-lighter);
@@ -62,8 +64,8 @@ body {
   cursor: pointer;
   border-color: var(--color-primary-darker-complement);
 }
+
 .menu_button:hover:after {
-  border-color: var(--color-primary-darker-complement);
   border-color: var(--color-text-lighter);
 }
 
@@ -73,6 +75,7 @@ body {
 }
 
 .breadcrumb {
+  background-color: var(--color-primary);
   height: calc(var(--menu-height) - (var(--padding-normal) * 2));
   line-height: calc(var(--menu-height) - (var(--padding-normal) * 2));
   padding: var(--padding-normal);
@@ -81,8 +84,38 @@ body {
   position: relative;
 }
 
+.breadcrumb span {
+  position: relative;
+  z-index: 1;
+}
+
+.breadcrumb--clickable:hover,
+.breadcrumb--clickable:not(:last-child):hover:after
+{
+  background-color: var(--color-primary-complement);
+  cursor: pointer;
+  border-color: var(--color-primary-darker-complement);
+}
+
+.breadcrumb:not(:first-child) {
+  margin-left: var(--menu-chevron-gap);
+}
+
+.breadcrumb:not(:first-child) {
+  --start_x: calc(-1 * var(--menu-border-width) + 1px);
+  --end_x: calc(var(--menu-height) / var(--menu-chevron-factor) - calc(2 * var(--menu-border-width)) + 0.5px);
+  clip-path: polygon(var(--start_x) 0, 200% 0, 200% 100%, var(--start_x) 100%, var(--end_x) 50%);
+}
+
+.breadcrumb:not(:first-child) span {
+  position: relative;
+  left: 10px;
+}
+
+/*
 .breadcrumb:not(:last-child):after {
   content: "";
+  background-color: var(--color-primary);
   height: calc((1.5 * var(--menu-border-width)) + var(--menu-height) / sqrt(2));
   width: calc((1.5 * var(--menu-border-width)) + var(--menu-height) / sqrt(2));
   border-right: var(--menu-border-width) solid var(--color-primary-darker);
@@ -90,13 +123,41 @@ body {
   display: block;
   position: absolute;
   top: calc((var(--menu-height) - (var(--menu-height) / sqrt(2))) / 2 - var(--menu-border-width));
-  right: 0;
+  right: calc(-1 * var(--menu-height) / 2 + (var(--menu-border-width) * 2));
   rotate: 45deg;
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  z-index: -1;
+}
+*/
+
+.breadcrumb--chevron-svg-aft,
+.breadcrumb--chevron-svg-forward {
+  width: calc((var(--menu-height) / var(--menu-chevron-factor)));
+  height: calc(10px + var(--menu-height));
+  position: absolute;
+  top: calc(-2 * var(--menu-border-width) - 1px);
+  right: calc(-1 * calc(var(--menu-height) / var(--menu-chevron-factor)) + 1px);
+  fill: var(--color-primary);
+  stroke: var(--color-primary-darker);
+  stroke-width: calc(var(--menu-border-width));
+  stroke-linejoin: miter;
+}
+
+.breadcrumb--clickable:hover .breadcrumb--chevron-svg-aft,
+.breadcrumb--clickable:hover .breadcrumb--chevron-svg-forward {
+  fill: var(--color-primary-complement);
+  stroke: var(--color-primary-darker-complement);
+}
+
+.breadcrumb--chevron-svg-aft {
+  left: calc(-3px + var(--menu-border-width));
+  fill: none;
 }
 
 .breadcrumb:last-child {
   flex-grow: 1;
 }
+
