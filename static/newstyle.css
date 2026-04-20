@@ -1,3 +1,5 @@
+@import "navbar.css";
+
 :root {
     --color-primary: #D6DAF0;
     --color-primary-complement: #F0ECD6;
@@ -5,6 +7,7 @@
     --color-primary-darker-complement: #D9CBB7;
     --color-background: #EEF2FF;
     --color-text: #1F1F1F;
+    --color-text-lighter: #7B7D88; /* midpoint between color-text and color-primary */
     --color-error: red;
     --color-error-lighter: #FFDEDE;
     --color-success: green;
@@ -18,6 +21,11 @@
     --text-size-big: 1.5em;
     --text-size-smaller: 0.95em;
     --heading-font-family: tahoma;
+}
+
+.page-inner-content {
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
 .modal-dialog {
