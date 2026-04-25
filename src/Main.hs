@@ -57,7 +57,7 @@ main = withJS $ do
         else do
             now <- liftIO getCurrentTime
             consoleLog $ "hydrate is off, current time: " <> toMisoString (show now)
-            return $ AppInitCtx False uri jsonSettings (InitialDataPayload now Nil)
+            return $ AppInitCtx False uri jsonSettings (InitialDataPayload now Nil [])
 
     ctxRef <- liftIO $ newIORef ctx
 

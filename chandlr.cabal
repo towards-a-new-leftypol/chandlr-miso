@@ -109,6 +109,7 @@ executable chandlr
             Common.Component.Modal
             Common.Component.PostViews
             Common.Component.NavigationBar.View
+            Common.Parsing.FlexibleJsonResponseParser
             Utils
             Network.Client
             Network.Http

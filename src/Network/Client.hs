@@ -91,6 +91,10 @@ update (OnMessage (sender, GetThread GetThreadArgs {..})) = do
             <> "&boards.threads.board_thread_id=eq." <> toMisoString (show board_thread_id)
             <> "&boards.threads.posts.order=board_post_id.asc"
 
+update (OnMessage (sender, LoadAllSitesAndBoards)) = do
+    model <- get
+    pghttp_ model "/sites?select=*,boards(*)" Http.GET (Nothing :: Maybe ()) sender
+
 update (OnMessage (sender, Search query)) = do
     model <- get
 

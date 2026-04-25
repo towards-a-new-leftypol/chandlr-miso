@@ -3,7 +3,7 @@
     --menu-border-width: var(--border-thickness);
     --menu-chevron-factor: 3;
     --menu-chevron-gap: calc(4 * var(--menu-border-width));
-    --hamburger-bar-height: 3.5px;
+    --hamburger-bar-height: 3px;
     --hamburger-bar-spacing: 5px;
     --hamburger-bar-width-ratio: calc(2/3);
 }
@@ -131,8 +131,10 @@
 }
 
 .menu_button--burger-icon {
-  left: calc(0.125 * var(--menu-height) + var(--menu-border-width) / 2);
   left: calc(50% * (1 - var(--hamburger-bar-width-ratio)));
+  width: calc(var(--hamburger-bar-width-ratio) * var(--menu-height) - var(--hamburger-bar-height));
+  margin: 0;
+  padding: 0;
 }
 
 .menu_button--burger-icon,
@@ -141,13 +143,10 @@
   position: absolute;
   top: calc(50% - (var(--hamburger-bar-height) / 2));
   bottom: 0;
-  width: calc(var(--hamburger-bar-width-ratio) * var(--menu-height));
-  height: var(--hamburger-bar-height);
   height: 0;
   background-color: var(--color-text-lighter);
   border: calc(var(--hamburger-bar-height) / 2) solid var(--color-text-lighter);
   border-radius: 1px;
-  box-sizing: border-box;
 }
 
 .menu_button--burger-icon:before,
@@ -157,6 +156,7 @@
   position: absolute;
   top: calc(-1 * var(--hamburger-bar-spacing) - var(--hamburger-bar-height));
   left: calc(-1 * var(--hamburger-bar-height) / 2);
+  width: 100%;
 }
 
 .menu_button--burger-icon:after {

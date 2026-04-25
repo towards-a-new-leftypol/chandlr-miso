@@ -53,7 +53,7 @@ getInitialDataPayload = do
          ( \err -> do
              consoleLog $ "!!!! Could not parse initial data! Falling back to default values. Error: " <> toMisoString err
              t <- getCurrentTime
-             return $ InitialDataPayload t Nil
+             return $ InitialDataPayload t Nil []
          )
          ( \json -> do
             consoleLog "Successfully loaded base64 encoded JSON data from page"
