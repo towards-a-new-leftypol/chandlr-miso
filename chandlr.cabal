@@ -108,7 +108,11 @@ executable chandlr
             Common.Admin.Component.DeleteIllegalPost
             Common.Component.Modal
             Common.Component.PostViews
+            Common.Component.NavigationBar
             Common.Component.NavigationBar.View
+            Common.Component.NavigationBar.Action
+            Common.Component.NavigationBar.NavMenu
+            Common.Component.NavigationBar.Model
             Common.Parsing.FlexibleJsonResponseParser
             Utils
             Network.Client

@@ -2039,7 +2039,7 @@ span.orangeQuote {
   margin: 1em auto;
 }
 
-.search_form input[name="search"] {
+.search_form input[name="q"] {
   flex-grow: 1;
   margin-left: .5em;
   height: 2em;
