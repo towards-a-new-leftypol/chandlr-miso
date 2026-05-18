@@ -30,8 +30,8 @@ import Miso
     , Topic
     , consoleLog
     , mailParent
+    , vfrag
     )
-import Miso.Html.Element (div_)
 import qualified Miso as M
 import Miso.String (MisoString, toMisoString)
 
@@ -150,7 +150,7 @@ app = M.Component
     { M.model = Uninitialized
     , M.hydrateModel = Nothing
     , M.update = update
-    , M.view = const $ div_ [] []
+    , M.view = const $ vfrag []
     , M.subs = []
     , M.styles = []
     , M.mountPoint = Nothing

@@ -4,8 +4,7 @@ const MODE_JS = "ghcjs";
 const MODE_NONE = "none";
 const DEFAULT_MODE = MODE_WASM;
 const STORAGE_KEY = "runtimePreference";
-// const STATIC_MOUNT = "./";
-const STATIC_MOUNT = "/static/";
+const STATIC_MOUNT = document.querySelector('meta[name=hydrate]').getAttribute('content') === "True" ? "/static/" : "./";
 
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initApp);
