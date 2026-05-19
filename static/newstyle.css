@@ -237,14 +237,20 @@
 .site-choice {
     background-color: var(--color-primary);
     display: flex;
+    border: var(--border-thickness) solid transparent;
+    border-radius: var(--border-radius);
+}
+
+.site-choice:hover {
+    border-color: var(--color-primary-darker);
 }
 
 .site-choice input {
-    margin: var(--padding-normal);
+    margin: calc(var(--padding-normal) - var(--border-thickness));
 }
 
 .site-choice label {
-    padding: var(--padding-normal);
+    padding: calc(var(--padding-normal) - var(--border-thickness));
     padding-left: 0;
     flex: 1;
 }
@@ -255,6 +261,10 @@
 
 .site-choice__selected {
     background-color: var(--color-primary-complement);
+}
+
+.site-choice.site-choice__selected:hover {
+    border-color: var(--color-primary-darker-complement);
 }
 
 .button {
