@@ -72,11 +72,11 @@ update (OnMessage (sender, FetchLatest t)) = do
     model <- get
 
     let payload = Just $ FetchCatalogArgs
-            { max_time = t
-            , max_row_read = fetchCount model
+            { selected_time = t
+            , thread_count = fetchCount model
             }
 
-    pghttp_ model "/rpc/fetch_catalog" Http.POST payload sender
+    pghttp_ model "/rpc/fetch_catalog2" Http.POST payload sender
 
 update (OnMessage (sender, GetThread GetThreadArgs {..})) = do
     model <- get
