@@ -68,12 +68,13 @@ update (OnMessage (_, InitModel m)) = do
     io_ $ consoleLog $ "HttpClient - InitModel received! " <> (toMisoString $ show m)
     put m
 
-update (OnMessage (sender, FetchLatest t)) = do
+update (OnMessage (sender, FetchLatest t boards)) = do
     model <- get
 
     let payload = Just $ FetchCatalogArgs
             { selected_time = t
             , thread_count = fetchCount model
+            , board_ids = boards
             }
 
     pghttp_ model "/rpc/fetch_catalog2" Http.POST payload sender

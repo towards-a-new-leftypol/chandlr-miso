@@ -114,6 +114,8 @@ executable chandlr
             Common.Component.NavigationBar.NavMenu
             Common.Component.NavigationBar.Model
             Common.Parsing.FlexibleJsonResponseParser
+            Common.BitField
+            Common.Cookies
             Utils
             Network.Client
             Network.Http
@@ -140,7 +142,9 @@ executable chandlr
                        mtl,
                        lens,
                        servant-miso-router,
-                       base64-bytestring
+                       base64-bytestring,
+                       cookie,
+                       integer-conversion
 
     if arch(wasm32)
         build-depends: ghc-experimental

@@ -12,6 +12,9 @@ module JSFFI.MisoFFI
     , encodeURIComponent
     , freezeBodyScrolling
     , unFreezeBodyScrolling
+    , setCookie
+    , deleteCookie
+    , getCookie
     ) where
 
 import Miso.DSL
@@ -25,8 +28,11 @@ import Miso.DSL
     , fromJSValUnchecked
     , isNull
     , isUndefined
+    , getProp
+    , asyncCallback1
     )
 import Miso.String (MisoString, fromMisoString)
+import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 
 -- | Newtypes wrapping JSVal for type safety
 newtype Document   = Document   JSVal
@@ -85,3 +91,36 @@ unFreezeBodyScrolling = do
     body  <- doc ! "body"
     style <- body ! "style"
     setField style ("overflow" :: MisoString) ("" :: MisoString)
+
+setCookie :: MisoString -> MisoString -> IO JSVal
+setCookie name value = do
+    store <- jsg "cookieStore"
+    store # "set" $ (name, value)
+
+deleteCookie :: MisoString -> IO JSVal
+deleteCookie name = do
+    store <- jsg "cookieStore"
+    store # "delete" $ name
+
+getCookie :: MisoString -> IO (Maybe MisoString)
+getCookie name = do
+    store   <- jsg "cookieStore"
+    promise <- store # "get" $ name
+    
+    mvar    <- newEmptyMVar
+    callack <- asyncCallback1 $ \cookie -> do
+        isNullCookie <- isNull cookie
+        val <-
+            if isNullCookie
+            then
+                return Nothing
+            else
+                Just <$>
+                    ( getProp "value" cookie
+                        >>= fromJSValUnchecked
+                    )
+        putMVar mvar val
+
+    _ <- promise # "then" $ callack
+    
+    takeMVar mvar
