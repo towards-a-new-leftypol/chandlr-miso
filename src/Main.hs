@@ -21,10 +21,15 @@ import Data.Time.Clock (getCurrentTime)
 
 import Common.FrontEnd.MainComponent
 import Common.FrontEnd.Types hiding (hydrate)
-import Utils (settingsFromHtml, getInitialDataPayload, getMetadata)
+import Utils
+    ( settingsFromHtml
+    , getInitialDataPayload
+    , getMetadata
+    , getSelectedBoardIdsFromCookie
+    )
 import Data.IORef (newIORef)
 
-import JSFFI.Profile (sectionStart, toJSString)
+-- import JSFFI.Profile (sectionStart, toJSString)
 
 #if defined(wasm32_HOST_ARCH)
 foreign export javascript "hs_start" main :: IO ()
@@ -47,17 +52,16 @@ main = withJS $ do
 
     uri <- getURI
 
-    -- currentTime <- getMetadata "timestamp"
-    --     >>= maybe (liftIO getCurrentTime) (iso8601ParseM . fromMisoString)
+    boardsSel <- getSelectedBoardIdsFromCookie
 
     ctx <-
         if hydrate
         then
-            AppInitCtx True uri jsonSettings <$> getInitialDataPayload
+            AppInitCtx True boardsSel uri jsonSettings <$> getInitialDataPayload
         else do
             now <- liftIO getCurrentTime
             consoleLog $ "hydrate is off, current time: " <> toMisoString (show now)
-            return $ AppInitCtx False uri jsonSettings (InitialDataPayload now Nil [])
+            return $ AppInitCtx False boardsSel uri jsonSettings (InitialDataPayload now Nil [])
 
     ctxRef <- liftIO $ newIORef ctx
 

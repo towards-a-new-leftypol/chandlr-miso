@@ -21,14 +21,17 @@ import JSFFI.MisoFFI
     , querySelector
     , textContent
     , getAttribute
+    , getCookie
     )
 import qualified Data.ByteString.Base64 as B64
 import Data.Maybe (fromMaybe)
 import Data.Bifunctor (first)
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.Set as Set
 
 import Common.FrontEnd.Types
 import Common.FrontEnd.JSONSettings
+import Common.BitField (intsFromBitField)
 
 getScriptContents :: MisoString -> IO (Maybe MisoString)
 getScriptContents className = do
@@ -105,3 +108,26 @@ settingsFromHtml = do
         , static_serve_url_root = ""
         , admin = isAdmin
         }
+
+
+getSelectedBoardIdsFromCookie :: IO (Maybe (Set.Set Int))
+getSelectedBoardIdsFromCookie = do
+    consoleLog "getSelectedBoardIdsFromCookie"
+    bCookie <- getCookie boardsSelCookieName
+
+    case bCookie of
+        Nothing -> do
+            consoleLog "NavigationBar didn't find a b cookie"
+            return Nothing
+        Just b -> do
+            consoleLog $ "NavigationBar b cookie value: " <> b
+            return $ Just $ getBoardIdsFromMisoString b
+
+    where
+        getBoardIdsFromMisoString :: MisoString -> Set.Set Int
+        getBoardIdsFromMisoString = intsFromBitField . read . fromMisoString
+
+
+boardsSelCookieName :: MisoString
+boardsSelCookieName = "b"
+

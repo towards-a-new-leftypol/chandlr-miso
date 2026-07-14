@@ -116,6 +116,9 @@ executable chandlr
             Common.Parsing.FlexibleJsonResponseParser
             Common.BitField
             Common.Cookies
+            Common.Component.InfiniteScroll
+            Common.Component.InfiniteScroll.Model
+            Common.Component.InfiniteScroll.Action
             Utils
             Network.Client
             Network.Http

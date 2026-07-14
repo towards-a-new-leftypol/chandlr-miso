@@ -292,3 +292,8 @@
     gap: var(--padding-normal);
     margin-bottom: var(--padding-normal);
 }
+
+.post-image {
+    max-width: attr(data-width type(<length>), 255px);
+    max-height: attr(data-height type(<length>), 190px);
+}

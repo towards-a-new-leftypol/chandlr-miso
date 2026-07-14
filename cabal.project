@@ -7,9 +7,13 @@ allow-newer: true
 source-repository-package
   type: git
   location: https://github.com/haskell-miso/servant-miso-html
-  tag: 8330edbd4043eb95dda7ccdf6b99f89eb2c61844
+  tag: 22fd9d18c394f2096ccdeb0558eec6370466c624
+  -- old:
+  -- tag: 8330edbd4043eb95dda7ccdf6b99f89eb2c61844
 
 source-repository-package
   type: git
   location: https://github.com/haskell-miso/servant-miso-router
-  tag: 7aa437caf6507019176a7d26930388f8c8368de9
+  tag: c8a3994f14dae4e5c35df0896e0ac961200c1108
+  -- old:
+  -- tag: c8a3994f14dae4e5c35df0896e0ac961200c1108

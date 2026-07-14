@@ -10,11 +10,39 @@ TODO:
     - form component
     - server endpoint
 
-- build navigation feature
-    Site(s) > Board(s) > Thread > Post
+- build navigation feature ✓
+    Site(s) > Board(s) > Thread > Post ✓
 
 - delete posts in thread that have been deleted.
 
 - Whatsapp style receipts with ✓✓ checks
     - just have a column in posts, saying read, true if anyone has loaded the content before (maybe set by JS/WASM only?)
     - users will see a post coming from postgrest (or the SSE queue) that has this set to false and alert the server
+
+
+
+- thread_bump-time_slices table: ✓
+    - bump_time
+    - from_when
+    - to_when
+    - thread_id
+    - post_id? -- I think yes, and even FK it, but FK might f it up
+    - board_id -- crucial for filtering on boards
+    - create backup first
+    - ask AI about creating this table based on posts and threads table
+    - have indicies figured out
+    - create table
+    - populate table using SQL if possible
+    - ask AI about deleting things and shutting the gap in the table
+    - this needs to be done for pagination but also needs to be done for board
+      filtering
+
+
+Infinite Scrolling API
+----------------------
+
+data SentinelPlace = Top | Bottom
+
+- inform of new observables (element_id, top/bottom)
+- need to give it an element, should we just give the app an #id and have
+it query selector it? Seems stupid but we can't pass a domref.

@@ -26,13 +26,13 @@ import Miso.DSL
     , setField
     , fromJSVal
     , fromJSValUnchecked
+    , fromJSVal
     , isNull
     , isUndefined
     , getProp
-    , asyncCallback1
+    , await
     )
 import Miso.String (MisoString, fromMisoString)
-import Control.Concurrent.MVar (newEmptyMVar, putMVar, takeMVar)
 
 -- | Newtypes wrapping JSVal for type safety
 newtype Document   = Document   JSVal
@@ -106,21 +106,12 @@ getCookie :: MisoString -> IO (Maybe MisoString)
 getCookie name = do
     store   <- jsg "cookieStore"
     promise <- store # "get" $ name
-    
-    mvar    <- newEmptyMVar
-    callack <- asyncCallback1 $ \cookie -> do
-        isNullCookie <- isNull cookie
-        val <-
-            if isNullCookie
-            then
-                return Nothing
-            else
-                Just <$>
-                    ( getProp "value" cookie
-                        >>= fromJSValUnchecked
-                    )
-        putMVar mvar val
+    cookie  <- await promise
+    isNullCookie <- isNull cookie
 
-    _ <- promise # "then" $ callack
-    
-    takeMVar mvar
+    if isNullCookie
+    then do
+        return Nothing
+    else do
+        jsv <- getProp "value" cookie
+        fromJSVal jsv

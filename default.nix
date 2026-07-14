@@ -16,7 +16,6 @@ let
       pkgs.zlib
       #haskell.cabal-install
       pkgs.haskellPackages.cabal-install
-      haskell.miso-from-html
       haskell.hlint
       haskell.haskell-language-server
     ];
