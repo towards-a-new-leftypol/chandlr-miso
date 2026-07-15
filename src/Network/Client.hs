@@ -43,7 +43,7 @@ import Common.FrontEnd.Types (MessagesFromChildren (..))
 awaitResult
     :: Http.HttpActionResult
     -> ReturnTopicName
-    -> Effect parent Model Action
+    -> Effect parent props Model Action
 awaitResult (_, resultVar) returnTopicName =
     withSink $ \sink -> do
         void $ forkIO $ do
@@ -51,7 +51,7 @@ awaitResult (_, resultVar) returnTopicName =
             sink $ Publish returnTopicName result
 
 
-update :: Action -> Effect parent Model Action
+update :: Action -> Effect parent props Model Action
 update Initialize = do
     subscribe clientInTopic OnMessage OnErrorMessage
     mailParent MsgClientMounted
@@ -121,7 +121,7 @@ pghttp_
     -> Http.HttpMethod
     -> Maybe a
     -> ReturnTopicName
-    -> Effect parent Model Action
+    -> Effect parent props Model Action
 pghttp_ m apiPath method payload sender = do
     io_$ consoleLog $ "HttpClient - sending Connect. pgApiRoot: " <> pgApiRoot m
     io $ Connect sender <$> Http.http
@@ -137,7 +137,7 @@ http_
     -> Http.HttpMethod
     -> Maybe a
     -> ReturnTopicName
-    -> Effect parent Model Action
+    -> Effect parent props Model Action
 http_ url method payload sender =
     io $ Connect sender <$> Http.http
         url
@@ -146,12 +146,12 @@ http_ url method payload sender =
         payload
 
 
-app :: Component parent Model Action
+app :: Component parent props Model Action
 app = M.Component
     { M.model = Uninitialized
     , M.hydrateModel = Nothing
     , M.update = update
-    , M.view = const $ vfrag []
+    , M.view = const $ const $ vfrag []
     , M.subs = []
     , M.styles = []
     , M.mountPoint = Nothing
@@ -162,4 +162,5 @@ app = M.Component
     , M.eventPropagation = False
     , M.mount = Just Initialize
     , M.unmount = Nothing
+    , M.onPropsChanged = Nothing
     }
