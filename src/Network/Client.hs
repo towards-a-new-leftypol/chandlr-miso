@@ -146,21 +146,21 @@ http_ url method payload sender =
         payload
 
 
-app :: Component parent props Model Action
+app :: Component context props Model Action
 app = M.Component
     { M.model = Uninitialized
     , M.hydrateModel = Nothing
     , M.update = update
-    , M.view = const $ const $ vfrag []
+    , M.view = const $ const $ const $ vfrag []
     , M.subs = []
     , M.styles = []
     , M.mountPoint = Nothing
     , M.logLevel = M.DebugAll
     , M.scripts = []
     , M.mailbox = const Nothing
-    , M.bindings = []
     , M.eventPropagation = False
     , M.mount = Just Initialize
     , M.unmount = Nothing
     , M.onPropsChanged = Nothing
+    , M.useContext = False
     }
