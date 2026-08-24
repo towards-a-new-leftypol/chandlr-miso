@@ -154,7 +154,7 @@ http_ url method payload sender =
 app :: Component context Props Model Action
 app = M.Component
     { M.model = Model { initialized = False, messageQueue = [] }
-    , M.hydrateModel = Nothing
+    , M.hydrateModel = Just initializeModel
     , M.update = update
     , M.view = const $ const $ const $ vfrag []
     , M.subs = []
@@ -169,3 +169,6 @@ app = M.Component
     , M.onPropsChanged = Just $ const $ const PropsInitialized
     , M.useContext = False
     }
+
+initializeModel :: IO Model
+initializeModel = return $ Model { initialized = True, messageQueue = [] }
