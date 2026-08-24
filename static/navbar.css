@@ -114,6 +114,10 @@
   flex-grow: 1;
 }
 
+.breadcrumb--boardslash {
+  color: var(--color-text-unimportant);
+}
+
 .breadcrumb--dots {
   --dots_width: 1em;
   display: flex;

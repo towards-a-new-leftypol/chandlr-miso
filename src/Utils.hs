@@ -107,6 +107,7 @@ settingsFromHtml = do
         , static_serve_path = ""
         , static_serve_url_root = ""
         , admin = isAdmin
+        , spam_noticer_url = ""
         }
 
 

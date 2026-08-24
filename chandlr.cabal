@@ -71,6 +71,7 @@ executable chandlr
             Common.AttachmentType
             Common.Component.BodyRender
             Common.Component.CatalogGrid
+            Common.Component.Catalog
             Common.Component.Search.SearchTypes
             Common.Component.Search.View
             Common.Component.Thread.Embed

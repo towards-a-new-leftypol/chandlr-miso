@@ -8,6 +8,7 @@
     --color-background: #EEF2FF;
     --color-text: #1F1F1F;
     --color-text-lighter: #7B7D88; /* midpoint between color-text and color-primary */
+    --color-text-unimportant: #B1B2B8;
     --color-error: red;
     --color-error-lighter: #FFDEDE;
     --color-success: green;
