@@ -1,0 +1,17 @@
+:root {
+    --site-color: var(--color-primary);
+    /* --site-color-leftychan: #FFB300; */
+    /* --site-color-dot-org: #222f54; */
+    /* --site-color-lain: #7fdd57; */
+    /* --site-color-crystal-cafe: #d7ffd8; */
+
+    --site-color-leftychan: oklch(0.7 0.1705 77.95);
+    --site-color-dot-org: oklch(70% 0.145 267.7);
+    --site-color-lain: oklch(0.7 0.2805 145);
+    --site-color-crystal-cafe: oklch(0.9615 0.0587 156.7);
+}
+
+[data-site="leftychan"]    { --site-color: var(--site-color-leftychan); }
+[data-site="leftypol.org"] { --site-color: var(--site-color-dot-org); }
+[data-site="lainchan"]     { --site-color: var(--site-color-lain); }
+[data-site="crystal.cafe"] { --site-color: var(--site-color-crystal-cafe); }

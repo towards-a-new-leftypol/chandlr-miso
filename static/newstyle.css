@@ -1,4 +1,5 @@
 @import "navbar.css";
+@import "custom.css";
 
 :root {
     --color-primary: #D6DAF0;
@@ -297,4 +298,17 @@
 .post-image {
     max-width: attr(data-width type(<length>), 255px);
     max-height: attr(data-height type(<length>), 190px);
+}
+
+.theme-catalog div.thread:hover {
+    background-color: oklch(
+        from color-mix(in oklch, var(--site-color), var(--color-primary) 5%)
+        90% 40% h
+        );
+    /*
+    background-color: oklch(
+        from color-mix(var(--site-color))
+        90% 40% h
+        );
+    */
 }
