@@ -300,6 +300,10 @@
     max-height: attr(data-height type(<length>), 190px);
 }
 
+.thread-image {
+    aspect-ratio: attr(data-width) / attr(data-height);
+}
+
 .theme-catalog div.thread:hover {
     background-color: oklch(
         from color-mix(in oklch, var(--site-color), var(--color-primary) 5%)
